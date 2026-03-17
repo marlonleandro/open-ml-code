@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build:vibe-assistant",
+      "type": "shell",
+      "command": "pnpm --dir extensions/vibe-assistant build",
+      "problemMatcher": "$tsc"
+    }
+  ]
+}
+

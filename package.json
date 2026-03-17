@@ -1,0 +1,14 @@
+{
+  "name": "custom-ide",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo base para un IDE propio sobre Code - OSS con capacidades de Vibe Coding.",
+  "packageManager": "pnpm@10.6.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "powershell -NoProfile -Command \"Get-ChildItem -Directory -Recurse -Force | Where-Object { $_.Name -in @('dist','out') } | Remove-Item -Recurse -Force\"",
+    "extension:package": "echo \"Pendiente: empaquetar la extension con @vscode/vsce\""
+  }
+}
+

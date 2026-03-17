@@ -1,0 +1,220 @@
+{
+  "name": "openml-vibe-assistant",
+  "displayName": "OpenML Vibe Assistant",
+  "description": "Asistente integrado de OpenML Code con soporte para LLM locales y proveedores remotos.",
+  "publisher": "openml",
+  "license": "MIT",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onCommand:openmlAssistant.openChat",
+    "onCommand:openmlAssistant.generatePlan",
+    "onCommand:openmlAssistant.selectProvider",
+    "onCommand:openmlAssistant.openSettings",
+    "onView:openmlAssistant.chatView"
+  ],
+  "main": "./out/extension",
+  "capabilities": {
+    "virtualWorkspaces": true,
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "contributes": {
+    "viewsContainers": {
+      "secondarySidebar": [
+        {
+          "id": "openml-assistant",
+          "title": "OpenML Assistant",
+          "icon": "./media/openml-assistant.svg"
+        }
+      ]
+    },
+    "views": {
+      "openml-assistant": [
+        {
+          "type": "webview",
+          "id": "openmlAssistant.chatView",
+          "name": "OpenML Assistant",
+          "contextualTitle": "OpenML Assistant",
+          "icon": "./media/openml-assistant.svg",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "openmlAssistant.openChat",
+        "title": "Open Chat",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.generatePlan",
+        "title": "Generate Plan",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.selectProvider",
+        "title": "Select Provider",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.openSettings",
+        "title": "Open Settings",
+        "category": "OpenML Assistant"
+      }
+    ],
+    "configuration": {
+      "title": "OpenML Assistant",
+      "properties": {
+        "openmlAssistant.provider": {
+          "type": "string",
+          "enum": [
+            "ollama",
+            "lmstudio",
+            "openai",
+            "gemini",
+            "anthropic",
+            "openrouter"
+          ],
+          "default": "ollama",
+          "markdownDescription": "Proveedor activo del asistente. `ollama` y `lmstudio` son las opciones recomendadas para trabajo con LLM locales.",
+          "scope": "application"
+        },
+        "openmlAssistant.systemPrompt": {
+          "type": "string",
+          "default": "You are OpenML Code Assistant. Produce practical implementation plans with concrete files, steps, and risks. Prefer concise, developer-focused answers.",
+          "markdownDescription": "Prompt de sistema base usado por el asistente.",
+          "scope": "application"
+        },
+        "openmlAssistant.requestTimeoutMs": {
+          "type": "number",
+          "default": 120000,
+          "minimum": 1000,
+          "markdownDescription": "Timeout en milisegundos para llamadas al proveedor del modelo.",
+          "scope": "application"
+        },
+        "openmlAssistant.ollama.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "markdownDescription": "Base URL de Ollama.",
+          "scope": "application"
+        },
+        "openmlAssistant.ollama.model": {
+          "type": "string",
+          "default": "llama3.2",
+          "markdownDescription": "Modelo de Ollama a utilizar.",
+          "scope": "application"
+        },
+        "openmlAssistant.lmStudio.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:1234/v1",
+          "markdownDescription": "Base URL compatible con OpenAI de LM Studio.",
+          "scope": "application"
+        },
+        "openmlAssistant.lmStudio.model": {
+          "type": "string",
+          "default": "local-model",
+          "markdownDescription": "Modelo configurado en LM Studio.",
+          "scope": "application"
+        },
+        "openmlAssistant.openai.baseUrl": {
+          "type": "string",
+          "default": "https://api.openai.com/v1",
+          "markdownDescription": "Base URL de OpenAI.",
+          "scope": "application"
+        },
+        "openmlAssistant.openai.apiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "API key de OpenAI.",
+          "scope": "application"
+        },
+        "openmlAssistant.openai.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Modelo a utilizar con OpenAI.",
+          "scope": "application"
+        },
+        "openmlAssistant.gemini.baseUrl": {
+          "type": "string",
+          "default": "https://generativelanguage.googleapis.com/v1beta",
+          "markdownDescription": "Base URL de Gemini API.",
+          "scope": "application"
+        },
+        "openmlAssistant.gemini.apiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "API key de Google AI Studio / Gemini.",
+          "scope": "application"
+        },
+        "openmlAssistant.gemini.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Modelo a utilizar con Gemini.",
+          "scope": "application"
+        },
+        "openmlAssistant.anthropic.baseUrl": {
+          "type": "string",
+          "default": "https://api.anthropic.com/v1",
+          "markdownDescription": "Base URL de Anthropic.",
+          "scope": "application"
+        },
+        "openmlAssistant.anthropic.apiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "API key de Anthropic.",
+          "scope": "application"
+        },
+        "openmlAssistant.anthropic.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Modelo a utilizar con Anthropic.",
+          "scope": "application"
+        },
+        "openmlAssistant.openRouter.baseUrl": {
+          "type": "string",
+          "default": "https://openrouter.ai/api/v1",
+          "markdownDescription": "Base URL de OpenRouter.",
+          "scope": "application"
+        },
+        "openmlAssistant.openRouter.apiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "API key de OpenRouter.",
+          "scope": "application"
+        },
+        "openmlAssistant.openRouter.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Modelo a utilizar con OpenRouter.",
+          "scope": "application"
+        },
+        "openmlAssistant.openRouter.appName": {
+          "type": "string",
+          "default": "OpenML Code",
+          "markdownDescription": "Titulo enviado a OpenRouter para identificar la app.",
+          "scope": "application"
+        },
+        "openmlAssistant.openRouter.siteUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "URL opcional enviada a OpenRouter.",
+          "scope": "application"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "gulp compile-extension:openml-vibe-assistant",
+    "watch": "gulp watch-extension:openml-vibe-assistant"
+  }
+}

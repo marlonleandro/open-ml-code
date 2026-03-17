@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Vibe Assistant Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/extensions/vibe-assistant"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/extensions/vibe-assistant/out/**/*.js"
+      ],
+      "preLaunchTask": "build:vibe-assistant"
+    }
+  ]
+}
+
