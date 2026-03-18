@@ -16,6 +16,7 @@
   ],
   "activationEvents": [
     "onCommand:openmlAssistant.openChat",
+    "onCommand:openmlAssistant.editWithPreview",
     "onCommand:openmlAssistant.generatePlan",
     "onCommand:openmlAssistant.selectProvider",
     "onCommand:openmlAssistant.openSettings",
@@ -57,6 +58,11 @@
         "category": "OpenML Assistant"
       },
       {
+        "command": "openmlAssistant.editWithPreview",
+        "title": "Edit With Preview",
+        "category": "OpenML Assistant"
+      },
+      {
         "command": "openmlAssistant.generatePlan",
         "title": "Generate Plan",
         "category": "OpenML Assistant"
@@ -91,7 +97,7 @@
         },
         "openmlAssistant.systemPrompt": {
           "type": "string",
-          "default": "You are OpenML Code Assistant. Produce practical implementation plans with concrete files, steps, and risks. Prefer concise, developer-focused answers.",
+          "default": "You are OpenML Code Assistant. Produce practical implementation plans with concrete files, steps, risks, and tests. When working in edit mode, prefer responses that can be previewed and applied safely inside the IDE.",
           "markdownDescription": "Prompt de sistema base usado por el asistente.",
           "scope": "application"
         },

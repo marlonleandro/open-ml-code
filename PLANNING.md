@@ -2,27 +2,46 @@
 
 ## 1. Objetivo del proyecto
 
-Construir un IDE propio llamado `OpenML Code`, basado en `Code - OSS`, con una experiencia de `Vibe Coding` local-first y sostenible en mantenimiento.
+Construir `OpenML Code`, un IDE propio basado en `Code - OSS`, con una experiencia de desarrollo AI `local-first`, mantenible en el tiempo y orientada a edicion asistida, herramientas de ejecucion y loops de correccion.
 
-La estrategia elegida es trabajar en dos capas:
+La estrategia sigue siendo de dos capas:
 
-1. un fork/distribucion propia de `Code - OSS`
-2. una capa AI propia desacoplada en extensiones, paquetes compartidos y servicios
+1. una distribucion propia de `Code - OSS`
+2. una capa AI propia centrada en `openml-vibe-assistant`
 
-## 2. Decisiones tomadas
+## 2. Decisiones clave
 
-- Nombre del IDE: `OpenML Code`
-- Version actual del IDE: `1.0.0`
+- Nombre del producto: `OpenML Code`
 - Base del editor: `Code - OSS`
-- Estrategia de mantenimiento: mantener el fork del core lo mas delgado posible
 - Tema por defecto: `OpenML Prussian Blue`
-- Capa AI principal: `openml-vibe-assistant` como extension builtin dentro del fork
+- Ejecutable en Windows: `omlcode.exe`
 - Flujo principal de modelos: `Ollama` y `LM Studio`
-- Soporte adicional de proveedores: `OpenAI`, `Gemini`, `Anthropic` y `OpenRouter`
-- Ubicacion del chat propio: barra lateral derecha (`Secondary Side Bar`)
-- Copilot: removido como `defaultChatAgent` del producto
+- Proveedores remotos soportados: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`
+- Chat propio ubicado en la barra lateral derecha
+- `GitHub Copilot` removido como chat por defecto del producto
+- API keys remotas guardadas en `SecretStorage`
+- Filosofia UX del asistente: compacta, minimalista y cercana a IDEs AI modernos
 
-## 3. Estructura actual
+## 3. Estado actual real
+
+### Producto
+
+- `OpenML Code` compila y arranca localmente
+- el ejecutable de Windows ya se genera como `omlcode.exe`
+- el launcher `./scripts/code.bat` funciona para abrir el IDE y validar version
+- el branding tecnico principal esta aplicado en el fork
+- el tema por defecto ya usa la paleta `Prussian Blue`
+
+### Versionado
+
+Hay dos nociones de version importantes:
+
+- Version comercial del producto: `OpenML Code 1.0.0`
+- Version tecnica interna del host de VS Code: `1.95.0`
+
+Esto se separo porque las extensiones builtin de VS Code necesitan una version API compatible del host. Si se usa `1.0.0` como version interna del host, fallan extensiones como `vscode.json-language-features`.
+
+## 4. Estructura actual del repo
 
 ```text
 CustomIDE/
@@ -40,233 +59,171 @@ CustomIDE/
 |-- services/
 |   `-- gateway/
 |-- .vscode/
-|-- package.json
-|-- pnpm-workspace.yaml
-|-- tsconfig.base.json
 |-- README.md
 `-- PLANNING.md
 ```
 
-## 4. Documentos de referencia
+## 5. Archivos importantes hoy
 
-- [README.md](./README.md)
-- [docs/architecture.md](./docs/architecture.md)
-- [docs/roadmap.md](./docs/roadmap.md)
-- [docs/openml-code-branding.md](./docs/openml-code-branding.md)
-
-## 5. Branding de OpenML Code
-
-Ya se aplico branding tecnico principal en `apps/code-oss`.
-
-### Archivos modificados
+### Branding y runtime
 
 - `apps/code-oss/product.json`
 - `apps/code-oss/package.json`
 - `apps/code-oss/package-lock.json`
-- `apps/code-oss/resources/linux/code.desktop`
-- `apps/code-oss/resources/linux/code-url-handler.desktop`
-- `apps/code-oss/resources/server/manifest.json`
-- `apps/code-oss/resources/win32/VisualElementsManifest.xml`
-- `apps/code-oss/extensions/theme-defaults/package.json`
-- `apps/code-oss/extensions/theme-defaults/package.nls.json`
-- `apps/code-oss/extensions/theme-defaults/themes/openml_prussian_blue.json`
+- `apps/code-oss/build/lib/electron.ts`
+- `apps/code-oss/scripts/code.bat`
+- `apps/code-oss/scripts/code-cli.bat`
+- `apps/code-oss/scripts/node-electron.bat`
+- `apps/code-oss/scripts/test.bat`
 
-### Cambios ya aplicados
-
-- nombre visible del producto: `OpenML Code`
-- `applicationName`: `openml-code`
-- carpeta de datos: `.openml-code`
-- protocolo URL: `openml-code`
-- identificadores base de Windows y macOS actualizados
-- version del IDE fijada en `1.0.0`
-- tema por defecto: `OpenML Prussian Blue`
-- `GitHub Copilot` removido como agente de chat por defecto en `product.json`
-
-### Pendientes de branding
-
-- definir icono/logo definitivo
-- reemplazar assets visuales multiplataforma
-- cambiar `linuxIconName` cuando exista icono final
-- sustituir URLs de documentacion/reporte cuando exista repo propio
-
-## 6. Estado del build local de Code - OSS
-
-El build local de `apps/code-oss` ya fue validado de punta a punta.
-
-### Problemas que hubo que resolver
-
-- `npm` bloqueado en PowerShell por Execution Policy
-  - se resolvio usando `npm.cmd`
-- Node desalineado con el repo
-  - se cambio a `22.22.1`
-- faltaba toolchain C++ para `node-gyp`
-  - se instalaron componentes de Visual Studio 2022
-- faltaban librerias Spectre del toolset
-  - se corrigio en Visual Studio Installer
-- `postinstall` exigia un repo Git
-  - se ejecuto `git init` en `apps/code-oss`
-- Git rechazaba el repo por `dubious ownership`
-  - se agrego `safe.directory`
-- faltaban bindings nativos en runtime
-  - se reconstruyeron modulos `@vscode/*`
-
-### Validaciones completadas
-
-- `npm.cmd install` en `apps/code-oss` termina correctamente
-- `npm.cmd run compile` en `apps/code-oss` termina correctamente
-- `./scripts/code.bat --version` inicia el editor correctamente
-- la extension builtin `openml-vibe-assistant` compila correctamente por separado
-
-### Observaciones restantes
-
-- siguen apareciendo warnings de `npm` por claves antiguas en `.npmrc`
-- puede persistir estado visual anterior del layout en perfiles ya usados
-- si el chat antiguo siguiera visible tras reinicio, probablemente sea por estado guardado del workbench y no por `defaultChatAgent`
-
-## 7. OpenML Assistant integrado
-
-La integracion AI principal ya esta montada dentro del fork en:
+### Asistente AI
 
 - `apps/code-oss/extensions/openml-vibe-assistant/package.json`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/extension.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/panel.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/providers.ts`
-- `apps/code-oss/extensions/openml-vibe-assistant/media/openml-assistant.svg`
-- `apps/code-oss/build/gulpfile.extensions.ts`
+- `apps/code-oss/extensions/openml-vibe-assistant/src/secrets.ts`
+- `apps/code-oss/extensions/openml-vibe-assistant/src/editing.ts`
+- `apps/code-oss/extensions/openml-vibe-assistant/src/tools.ts`
 
-### Capacidades actuales
+## 6. Capacidades actuales de OpenML Assistant
+
+### Chat y proveedores
 
 - vista propia en la barra lateral derecha
-- UX minimalista con menu contextual de acciones
-- selector de proveedor
-- selector de modos `agent`, `ask`, `edit`, `plan`
-- modo por defecto: `agent`
-- flujo local-first visible para `Ollama` y `LM Studio`
-- soporte remoto para `OpenAI`, `Gemini`, `Anthropic` y `OpenRouter`
-- reutilizacion del contexto del editor activo
-- comando `Generate Plan` que abre el chat en modo `plan`
-- acciones `Copy last` e `Insert last`
+- modos `agent`, `ask`, `edit`, `plan`
+- `streaming` de respuestas
+- soporte para `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic` y `OpenRouter`
+- autodeteccion de modelos para `Ollama` y `LM Studio`
+- selector de proveedor y modelo desde la UI
+- renderizado Markdown real en respuestas
+- envio con `Enter` y salto de linea con `Shift+Enter`
 
-### Ajustes UX ya aplicados
+### Seguridad y configuracion
 
-- el chat ya no se abre como panel flotante
-- el asistente vive en la `Secondary Side Bar`
-- la UI se hizo mas compacta y cercana al estilo de Copilot Chat
-- los tres puntos quedaron ubicados al lado derecho
-- los mensajes `status` ya no se renderizan como tarjetas en el historial
-- se redujeron paddings y espacios laterales para aprovechar mejor el ancho del lateral
+- `SecretStorage` para API keys remotas
+- migracion desde settings legacy a secretos seguros
+- comandos con aprobacion antes de ejecucion
 
-### Lo que aun no hace
+### Herramientas del workspace
 
-- streaming token a token
-- guardado seguro de API keys con `SecretStorage`
-- autodeteccion de modelos cargados en `Ollama` o `LM Studio`
-- herramientas agenticas de archivos, busqueda, terminal y diffs
-- memoria persistente del proyecto
+- `/read <path>`
+- `/search <pattern>`
+- `/diff [path]`
+- `/errors`
+- `/test [command]`
+- `/run <command>`
+- `/fix [test command]`
 
-## 8. Stack definido
+### Edicion asistida
 
-### Editor
+- extraccion de propuestas `openml-edit`
+- preview de cambios con resumen Markdown y diff
+- aplicacion de cambios con aprobacion
+- soporte multiarchivo
+- tests sugeridos
+- comando `OpenML Assistant: Edit With Preview`
 
-- `Code - OSS`
-- Electron
-- TypeScript
+### Fase 4 ya iniciada
 
-### Capa AI
+- terminal controlada mas rica via output channel `OpenML Assistant Tools`
+- ejecucion de tests con autodeteccion basica
+- lectura de diagnosticos del editor
+- loop inicial de fix
+- re-check automatico despues de `Apply Edits`
+- reintentos automaticos del fix loop hasta un limite controlado
 
-- VS Code Extension API
-- extension builtin `openml-vibe-assistant`
-- proveedor principal local: `Ollama` / `LM Studio`
-- proveedores remotos: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`
+## 7. Limitaciones actuales
 
-### Monorepo y tooling
+- el modelo no siempre devuelve un bloque `openml-edit`; cuando eso pasa no se puede aplicar la respuesta como cambio estructurado
+- el resaltado de sintaxis de snippets en el chat todavia es basico
+- aun no existe memoria persistente del proyecto ni indexado semantico profundo
+- el parsing de errores de tests todavia es generico; no prioriza los fallos mas relevantes
+- no se ha completado el branding visual final del producto
 
-- `pnpm`
-- TypeScript
-- Gulp del propio repo de VS Code para compilar extensiones builtin
+## 8. Estado del build
 
-### Backend futuro
+Validaciones ya completadas:
 
-- Node.js 22
-- Fastify
-- Zod
-- SQLite o Postgres
+- `npm.cmd install` en `apps/code-oss`: OK
+- `npm.cmd run compile` en `apps/code-oss`: OK
+- `npm.cmd run electron`: OK
+- `apps/code-oss/.build/electron/omlcode.exe`: generado correctamente
+- `./scripts/code.bat --version`: OK
+- compilacion separada de `openml-vibe-assistant`: OK
 
-## 9. Roadmap por fases
+## 9. Roadmap actualizado
 
 ### Fase 0. Fundacion
 
-- fork/base de `Code - OSS`
-- branding inicial
+- fork de `Code - OSS`
+- branding tecnico inicial
 - build local
-- extension host funcional
 - base monorepo
 
-Estado actual: completada
+Estado: completada
 
-### Fase 1. Asistente usable dentro del IDE
+### Fase 1. Asistente usable
 
-- integracion builtin del asistente
-- soporte de proveedores locales y remotos
-- vista propia en lateral derecho
-- historial de mensajes
-- modos basicos `agent`, `ask`, `edit`, `plan`
-- UX minimalista inicial
+- panel AI propio
+- proveedores locales y remotos
+- chat usable en el IDE
+- modos `agent`, `ask`, `edit`, `plan`
 
-Estado actual: completada en su primera version usable
+Estado: completada
 
-### Fase 2. Pulido de producto AI
+### Fase 2. Pulido AI
 
-- streaming de respuestas
-- `SecretStorage` para API keys
+- `streaming`
+- `SecretStorage`
 - autodeteccion de modelos locales
-- mejor manejo de estados, errores y layout persistido
+- herramientas iniciales del workspace
+- renderizado Markdown
 
-Estado actual: siguiente fase recomendada
+Estado: completada
 
 ### Fase 3. Edicion asistida
 
-- generar diffs
-- aplicar cambios con preview
+- preview de cambios
+- aplicacion aprobada
 - edicion multiarchivo
 - tests sugeridos
 
-Estado actual: pendiente
+Estado: completada en su primera version funcional
 
-### Fase 4. Herramientas y ejecucion
+### Fase 4. Herramientas y ejecucion profunda
 
-- lectura de archivos
-- busqueda en workspace
-- terminal controlada
+- terminal controlada mas rica
 - ejecucion de tests
-- lectura de errores y loops de fix
+- lectura de errores
+- loops de fix
 
-Estado actual: pendiente
+Estado: avanzada y funcional en primera iteracion
 
 ### Fase 5. Contexto profundo
 
 - indexado semantico
 - simbolos/LSP
 - memoria de proyecto
-- reglas por workspace
+- reglas persistentes por workspace
 
-Estado actual: pendiente
+Estado: pendiente
 
 ### Fase 6. Producto distribuible
 
 - empaquetado multiplataforma
 - auto-update
-- Open VSX o registry propio
+- registry de extensiones
 - telemetria y observabilidad
 
-Estado actual: pendiente
+Estado: pendiente
 
-## 10. Riesgos tecnicos conocidos
+## 10. Riesgos y observaciones
 
-- mantener un fork profundo de VS Code encarece mucho el proyecto
-- el estado persistido del workbench puede hacer visibles vistas antiguas aunque el producto ya no las configure por defecto
-- el acceso al Marketplace oficial de Microsoft no debe asumirse para una distribucion propia
-- los builds de Windows dependen de modulos nativos sensibles al entorno
+- mantener un fork profundo del core sigue siendo costoso; conviene dejar la mayor parte posible en extensiones
+- el estado persistido del workbench puede dejar restos de layout en perfiles viejos
+- el acceso al Marketplace oficial de Microsoft no debe asumirse para la distribucion final
+- el build de Windows sigue dependiendo de modulos nativos y toolchain correcto
 
 ## 11. Comandos utiles
 
@@ -275,7 +232,7 @@ Estado actual: pendiente
 ```powershell
 npm.cmd install
 npm.cmd run compile
-npm.cmd run watch
+npm.cmd run electron
 .\scripts\code.bat
 .\scripts\code.bat --version
 npm.cmd run gulp -- compile-extension:openml-vibe-assistant
@@ -288,27 +245,10 @@ pnpm install
 pnpm build
 ```
 
-## 12. Punto actual del proyecto
+## 12. Siguientes pasos recomendados
 
-En este momento:
-
-- el monorepo base existe
-- el branding tecnico principal esta aplicado
-- `OpenML Code` compila y arranca localmente
-- `OpenML Assistant` ya esta integrado dentro del editor
-- el asistente ya usa lateral derecho propio, proveedores reales y modos basicos
-- `Copilot` ya no esta configurado como chat por defecto en el producto
-- el siguiente trabajo importante es pulir la experiencia AI y empezar a agregar herramientas de workspace
-
-## 13. Siguiente paso recomendado
-
-1. implementar `streaming` en `OpenML Assistant`
-2. mover API keys a `SecretStorage`
-3. detectar automaticamente modelos de `Ollama` y `LM Studio`
-4. agregar herramientas iniciales:
-   - lectura de archivos
-   - busqueda en workspace
-   - generacion de diffs
-   - comandos con aprobacion
-5. decidir si hace falta migrar o limpiar estado de layout para ocultar restos del chat antiguo en perfiles previos
-6. completar branding visual
+1. hacer configurable el numero maximo de intentos del fix loop
+2. mejorar el parser de errores para priorizar fallos importantes antes del siguiente parche
+3. añadir acciones sobre snippets (`copy code`, etc.) y mejor resaltado visual
+4. definir icono/logo definitivo y completar branding multiplataforma
+5. avanzar hacia contexto profundo, indexado y memoria de proyecto

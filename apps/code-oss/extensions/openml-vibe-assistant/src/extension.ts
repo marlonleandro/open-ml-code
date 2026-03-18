@@ -1,9 +1,20 @@
 import * as vscode from 'vscode';
 import { getActiveProvider, providerDisplayName, providerOptions, setActiveProvider } from './providers';
 import { OpenMLAssistantViewProvider } from './panel';
+import { initializeSecretStorage, migrateLegacySecrets, promptForProviderSecret } from './secrets';
 
-export function activate(context: vscode.ExtensionContext): void {
-	const provider = new OpenMLAssistantViewProvider();
+const remoteProviders = [
+	{ label: 'OpenAI', provider: 'openai' as const },
+	{ label: 'Gemini', provider: 'gemini' as const },
+	{ label: 'Anthropic', provider: 'anthropic' as const },
+	{ label: 'OpenRouter', provider: 'openrouter' as const }
+];
+
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+	initializeSecretStorage(context.secrets);
+	await migrateLegacySecrets();
+
+	const provider = new OpenMLAssistantViewProvider(context.extensionUri);
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(OpenMLAssistantViewProvider.viewId, provider, {
 			webviewOptions: {
@@ -20,6 +31,24 @@ export function activate(context: vscode.ExtensionContext): void {
 	);
 
 	context.subscriptions.push(
+		vscode.commands.registerCommand('openmlAssistant.editWithPreview', async () => {
+			const editor = vscode.window.activeTextEditor;
+			const prompt = await vscode.window.showInputBox({
+				prompt: 'Describe the code change you want to make',
+				placeHolder: editor?.document.fileName
+					? `Example: Refactor ${editor.document.fileName} and suggest tests`
+					: 'Example: Implement assisted multi-file edits with suggested tests'
+			});
+
+			if (!prompt) {
+				return;
+			}
+
+			await provider.show(prompt, 'edit');
+		})
+	);
+
+	context.subscriptions.push(
 		vscode.commands.registerCommand('openmlAssistant.selectProvider', async () => {
 			const current = getActiveProvider();
 			const selected = await vscode.window.showQuickPick(
@@ -28,9 +57,7 @@ export function activate(context: vscode.ExtensionContext): void {
 					description: item === current ? 'Current' : undefined,
 					provider: item
 				})),
-				{
-					placeHolder: 'Select the provider for OpenML Assistant'
-				}
+				{ placeHolder: 'Select the provider for OpenML Assistant' }
 			);
 
 			if (!selected) {
@@ -46,6 +73,23 @@ export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(
 		vscode.commands.registerCommand('openmlAssistant.openSettings', async () => {
 			await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:openml.openml-vibe-assistant openmlAssistant');
+		})
+	);
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand('openmlAssistant.manageApiKeys', async () => {
+			const selected = await vscode.window.showQuickPick(remoteProviders, {
+				placeHolder: 'Choose the provider whose API key you want to store securely'
+			});
+
+			if (!selected) {
+				return;
+			}
+
+			const saved = await promptForProviderSecret(selected.provider);
+			if (saved) {
+				void vscode.window.showInformationMessage(`${selected.label} API key saved in SecretStorage.`);
+			}
 		})
 	);
 
@@ -66,5 +110,3 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {}
-
-

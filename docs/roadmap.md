@@ -1,44 +1,77 @@
-# Roadmap por fases
+﻿# Roadmap por fases
 
 ## Fase 0. Fundacion
 
 - fork de `Code - OSS`
-- branding del producto
+- branding tecnico inicial
 - build local
 - extension host funcionando
 - base monorepo
 
-Entregable: editor renombrado + extension MVP cargando localmente.
+Entregable: editor renombrado compilando y arrancando localmente.
 
-## Fase 1. MVP de Vibe Coding
+Estado: completada
 
-- panel de asistente
+## Fase 1. Asistente usable dentro del IDE
+
+- panel de asistente propio
 - contexto del archivo activo
-- generacion de planes
-- comandos rapidos
-- plantillas de tareas
+- soporte de proveedores locales y remotos
+- modos `agent`, `ask`, `edit` y `plan`
+- vista en la barra lateral derecha
+- UX minimalista inicial
 
-Entregable: el usuario describe una feature y recibe un plan accionable dentro del editor.
+Entregable: el usuario conversa con un asistente integrado dentro del editor.
 
-## Fase 2. Edicion asistida
+Estado: completada
 
-- generar diffs
+## Fase 2. Pulido de producto AI
+
+- `streaming` de respuestas
+- `SecretStorage` para API keys
+- autodeteccion de modelos de `Ollama` y `LM Studio`
+- herramientas iniciales del workspace
+- renderizado Markdown real para respuestas
+- envio por `Enter` y UX mas cercana a otros IDEs
+
+Entregable: chat AI ya util para trabajo real dentro del IDE.
+
+Estado: completada en su primera version funcional
+
+## Fase 3. Calidad visual y snippets
+
+- resaltado de sintaxis en bloques de codigo
+- acciones sobre snippets (`copy code`, etc.)
+- mayor pulido tipografico y visual del chat
+- iconografia definitiva del producto
+
+Entregable: experiencia visual mas profesional y comparable a IDEs AI maduros.
+
+Estado: siguiente fase recomendada
+
+## Fase 4. Edicion asistida
+
+- generar diffs accionables
 - aplicar cambios con preview
 - edicion multiarchivo
 - tests sugeridos
 
 Entregable: el agente propone y aplica cambios pequeños con confirmacion.
 
-## Fase 3. Herramientas y ejecucion
+Estado: pendiente
 
-- terminal controlada
+## Fase 5. Herramientas y ejecucion profunda
+
+- terminal controlada mas rica
 - ejecucion de tests
 - lectura de errores
 - loops de fix
 
-Entregable: flujo "implementa -> prueba -> corrige".
+Entregable: flujo `implementa -> prueba -> corrige`.
 
-## Fase 4. Contexto profundo
+Estado: pendiente
+
+## Fase 6. Contexto profundo
 
 - indexado semantico
 - simbolos/LSP
@@ -47,7 +80,9 @@ Entregable: flujo "implementa -> prueba -> corrige".
 
 Entregable: respuestas mas precisas y menos contexto manual.
 
-## Fase 5. Producto distribuible
+Estado: pendiente
+
+## Fase 7. Producto distribuible
 
 - empaquetado multiplataforma
 - auto-update
@@ -56,3 +91,4 @@ Entregable: respuestas mas precisas y menos contexto manual.
 
 Entregable: beta privada distribuible.
 
+Estado: pendiente

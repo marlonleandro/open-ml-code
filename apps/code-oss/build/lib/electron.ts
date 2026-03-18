@@ -27,7 +27,7 @@ function isDocumentSuffix(str?: string): str is DarwinDocumentSuffix {
 }
 
 const root = path.dirname(path.dirname(import.meta.dirname));
-const product = JSON.parse(fs.readFileSync(path.join(root, 'product.json'), 'utf8'));
+const product = JSON.parse(fs.readFileSync(path.join(root, 'product.json'), 'utf8')) as { [key: string]: unknown; nameShort: string; nameLong: string; applicationName: string; darwinBundleIdentifier: string; urlProtocol: string; win32ExecutableName?: string; win32VersionedUpdate?: boolean; };
 const commit = getVersion(root);
 const useVersionedUpdate = process.platform === 'win32' && (product as typeof product & { win32VersionedUpdate?: boolean })?.win32VersionedUpdate;
 const versionedResourcesFolder = useVersionedUpdate ? commit!.substring(0, 10) : '';
@@ -232,6 +232,17 @@ async function main(arch: string = process.arch): Promise<void> {
 	const electronPath = path.join(root, '.build', 'electron');
 	await util.rimraf(electronPath)();
 	await util.streamToPromise(getElectron(arch)());
+
+	if (process.platform === 'win32' && product.win32ExecutableName && product.win32ExecutableName !== product.nameShort) {
+		const sourceExe = path.join(electronPath, `${product.nameShort}.exe`);
+		const targetExe = path.join(electronPath, `${product.win32ExecutableName}.exe`);
+		if (fs.existsSync(sourceExe)) {
+			if (fs.existsSync(targetExe)) {
+				await fs.promises.rm(targetExe, { force: true });
+			}
+			await fs.promises.rename(sourceExe, targetExe);
+		}
+	}
 }
 
 if (import.meta.main) {
@@ -240,3 +251,5 @@ if (import.meta.main) {
 		process.exit(1);
 	});
 }
+
+

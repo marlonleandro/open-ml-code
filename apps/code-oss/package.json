@@ -1,6 +1,6 @@
 {
   "name": "openml-code-dev",
-  "version": "1.0.0",
+  "version": "1.95.0",
   "distro": "e5f18aa9c30af482492789ea8994f33f94e09a7d",
   "author": {
     "name": "OpenML"
@@ -250,5 +250,6 @@
     "windows-foreground-love": "0.6.1"
   }
 }
+
 
 

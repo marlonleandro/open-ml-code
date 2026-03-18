@@ -25,6 +25,7 @@
     "win32x64UserAppId":  "{{8AB3C6B2-79B0-466A-AE6D-EC4B8CC3CB7A}",
     "win32arm64UserAppId":  "{{D79B2ED9-3A7B-48A6-91B1-2E4FD31D0D6B}",
     "win32AppUserModelId":  "OpenML.Code",
+    "win32ExecutableName":  "omlcode",
     "win32ShellNameShort":  "OpenML \u0026Code",
     "win32TunnelServiceMutex":  "openmlcode-tunnelservice",
     "win32TunnelMutex":  "openmlcode-tunnel",
@@ -88,3 +89,6 @@
                               }
                           ]
 }
+
+
+
