@@ -20,7 +20,10 @@
     "onCommand:openmlAssistant.generatePlan",
     "onCommand:openmlAssistant.selectProvider",
     "onCommand:openmlAssistant.openSettings",
-    "onView:openmlAssistant.chatView"
+    "onView:openmlAssistant.chatView",
+    "onCommand:openmlAssistant.rebuildIndex",
+    "onCommand:openmlAssistant.rememberProjectNote",
+    "onCommand:openmlAssistant.addWorkspaceRule"
   ],
   "main": "./out/extension",
   "capabilities": {
@@ -76,6 +79,21 @@
         "command": "openmlAssistant.openSettings",
         "title": "Open Settings",
         "category": "OpenML Assistant"
+      },
+      {
+        "title": "Rebuild Semantic Index",
+        "command": "openmlAssistant.rebuildIndex",
+        "category": "OpenML Assistant"
+      },
+      {
+        "title": "Remember Project Note",
+        "command": "openmlAssistant.rememberProjectNote",
+        "category": "OpenML Assistant"
+      },
+      {
+        "title": "Add Workspace Rule",
+        "command": "openmlAssistant.addWorkspaceRule",
+        "category": "OpenML Assistant"
       }
     ],
     "configuration": {
@@ -89,7 +107,8 @@
             "openai",
             "gemini",
             "anthropic",
-            "openrouter"
+            "openrouter",
+            "azurefoundry"
           ],
           "default": "ollama",
           "markdownDescription": "Proveedor activo del asistente. `ollama` y `lmstudio` son las opciones recomendadas para trabajo con LLM locales.",
@@ -214,6 +233,68 @@
           "type": "string",
           "default": "",
           "markdownDescription": "URL opcional enviada a OpenRouter.",
+          "scope": "application"
+        },
+        "openmlAssistant.historyTokenBudget": {
+          "type": "number",
+          "default": 4000,
+          "minimum": 1000,
+          "markdownDescription": "Presupuesto aproximado de tokens para el historial persistente por proyecto guardado en la carpeta `.openml`.",
+          "scope": "window"
+        },
+        "openmlAssistant.gemini.maxOutputTokens": {
+          "type": "number",
+          "default": 16384,
+          "minimum": 512,
+          "markdownDescription": "Maximo de tokens de salida solicitados a Gemini para respuestas largas, incluyendo propuestas editables multiarchivo. Si el proveedor sigue truncando, aumenta este valor manualmente.",
+          "scope": "application"
+        },
+        "openmlAssistant.anthropic.maxOutputTokens": {
+          "type": "number",
+          "default": 8192,
+          "minimum": 512,
+          "markdownDescription": "Maximo de tokens de salida solicitados a Anthropic para respuestas largas, incluyendo propuestas editables multiarchivo.",
+          "scope": "application"
+        },
+        "openmlAssistant.azureFoundry.host": {
+          "type": "string",
+          "default": "https://YOUR-RESOURCE.cognitiveservices.azure.com",
+          "markdownDescription": "Host base de Azure AI Foundry / Azure OpenAI, por ejemplo `https://tu-recurso.cognitiveservices.azure.com`.",
+          "scope": "application"
+        },
+        "openmlAssistant.azureFoundry.apiVersion": {
+          "type": "string",
+          "default": "2025-04-01-preview",
+          "markdownDescription": "Version de API para Azure Foundry Responses API.",
+          "scope": "application"
+        },
+        "openmlAssistant.azureFoundry.deployment": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Nombre del deployment o modelo configurado en Azure Foundry que se enviara en el campo `model`.",
+          "scope": "application"
+        },
+        "openmlAssistant.azureFoundry.authMode": {
+          "type": "string",
+          "enum": [
+            "bearer",
+            "api-key"
+          ],
+          "default": "bearer",
+          "markdownDescription": "Modo de autenticacion para Azure Foundry. Usa `bearer` para tokens como en tu ejemplo o `api-key` si tu recurso lo requiere.",
+          "scope": "application"
+        },
+        "openmlAssistant.azureFoundry.maxOutputTokens": {
+          "type": "number",
+          "default": 8192,
+          "minimum": 256,
+          "markdownDescription": "Maximo de tokens de salida solicitados a Azure Foundry para respuestas largas y propuestas editables multiarchivo.",
+          "scope": "application"
+        },
+        "openmlAssistant.azureFoundry.apiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Credencial de Azure Foundry. Se migra a SecretStorage.",
           "scope": "application"
         }
       }

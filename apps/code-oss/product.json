@@ -32,7 +32,7 @@
     "darwinBundleIdentifier":  "com.openml.code",
     "darwinProfileUUID":  "4D8C7B8A-5B88-4E02-9ACB-0B1EF50D7C12",
     "darwinProfilePayloadUUID":  "4B2D9B6A-12A4-4A55-A693-F0862A0A3F11",
-    "linuxIconName":  "code-oss",
+    "linuxIconName":  "openml-code",
     "licenseFileName":  "LICENSE.txt",
     "reportIssueUrl":  "https://github.com/microsoft/vscode/issues/new",
     "nodejsRepository":  "https://nodejs.org",
@@ -89,6 +89,3 @@
                               }
                           ]
 }
-
-
-

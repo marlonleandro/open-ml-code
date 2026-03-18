@@ -1,12 +1,13 @@
 ﻿import * as vscode from 'vscode';
 
-type SecretProviderId = 'openai' | 'gemini' | 'anthropic' | 'openrouter';
+type SecretProviderId = 'openai' | 'gemini' | 'anthropic' | 'openrouter' | 'azurefoundry';
 
 const SECRET_KEYS: Record<SecretProviderId, string> = {
 	openai: 'openmlAssistant.openai.apiKey',
 	gemini: 'openmlAssistant.gemini.apiKey',
 	anthropic: 'openmlAssistant.anthropic.apiKey',
-	openrouter: 'openmlAssistant.openRouter.apiKey'
+	openrouter: 'openmlAssistant.openRouter.apiKey',
+	azurefoundry: 'openmlAssistant.azureFoundry.apiKey'
 };
 
 let secretStorage: vscode.SecretStorage | undefined;
@@ -49,7 +50,8 @@ export async function migrateLegacySecrets(): Promise<void> {
 		{ provider: 'openai', configKey: 'openai.apiKey' },
 		{ provider: 'gemini', configKey: 'gemini.apiKey' },
 		{ provider: 'anthropic', configKey: 'anthropic.apiKey' },
-		{ provider: 'openrouter', configKey: 'openRouter.apiKey' }
+		{ provider: 'openrouter', configKey: 'openRouter.apiKey' },
+		{ provider: 'azurefoundry', configKey: 'azureFoundry.apiKey' }
 	];
 
 	for (const item of migrations) {
@@ -73,7 +75,8 @@ export async function promptForProviderSecret(provider: SecretProviderId): Promi
 		openai: 'OpenAI',
 		gemini: 'Gemini',
 		anthropic: 'Anthropic',
-		openrouter: 'OpenRouter'
+		openrouter: 'OpenRouter',
+		azurefoundry: 'Azure Foundry'
 	};
 
 	const value = await vscode.window.showInputBox({

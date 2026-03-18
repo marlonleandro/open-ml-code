@@ -1,12 +1,12 @@
-﻿# Arquitectura tecnica concreta
+# Arquitectura tecnica concreta
 
 ## 1. Vision de producto
 
 `OpenML Code` se construye sobre `Code - OSS`, pero la mayor parte de la inteligencia vive fuera del core. La regla sigue siendo esta:
 
-`Code - OSS + branding propio + extension AI builtin + tools + servicios opcionales`
+`Code - OSS + branding propio + extension AI builtin + tools + contexto profundo + servicios opcionales`
 
-Eso reduce el costo de mantenimiento del fork y permite iterar rapido en la experiencia AI.
+Eso reduce el costo de mantenimiento del fork y permite iterar rapido en la experiencia AI sin acoplar todo al core del editor.
 
 ## 2. Estructura de carpetas
 
@@ -27,11 +27,10 @@ CustomIDE/
 |   `-- shared-types/                     # tipos de dominio y contratos
 |-- services/
 |   |-- gateway/                          # futuro proxy/API opcional
-|   |-- memory/                           # futuro almacenamiento de memoria
-|   `-- indexing/                         # futuro indexado semantico
-|-- package.json
-|-- pnpm-workspace.yaml
-`-- tsconfig.base.json
+|   |-- memory/                           # futuro almacenamiento externo de memoria
+|   `-- indexing/                         # futuro indexado semantico mas rico
+|-- README.md
+`-- PLANNING.md
 ```
 
 ## 3. Modulos principales
@@ -55,9 +54,11 @@ Responsabilidad:
 - `streaming` de respuestas
 - renderizado Markdown en el webview
 - integracion con contexto del editor activo
-- tools iniciales del workspace
+- herramientas del workspace
 - aprobacion de acciones riesgosas
 - gestion segura de secretos remotos con `SecretStorage`
+- edicion asistida y loops de correccion
+- indexado semantico ligero, simbolos, memoria y reglas persistentes por workspace
 
 ### `packages/agent-core`
 
@@ -105,9 +106,16 @@ Responsabilidad futura:
 
 - `openml-vibe-assistant` como extension builtin
 - proveedores locales: `Ollama`, `LM Studio`
-- proveedores remotos: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`
+- proveedores remotos: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, `Azure Foundry`
 - `SecretStorage` para API keys
 - `markdown-it` para render de respuestas enriquecidas
+
+### Contexto profundo actual
+
+- indice semantico ligero local basado en chunks y scoring lexical
+- `vscode.executeWorkspaceSymbolProvider` para simbolos
+- `workspaceState` para memoria y reglas persistentes
+- enriquecimiento automatico de prompts con contexto profundo
 
 ### Tooling y build
 
@@ -125,7 +133,7 @@ Responsabilidad futura:
 
 ## 5. Arquitectura del asistente actual
 
-### UI
+### UI y orquestacion
 
 Archivos principales:
 
@@ -138,8 +146,11 @@ Responsabilidad:
 - abrir el chat en la barra lateral derecha
 - manejar eventos del webview
 - coordinar envio de prompts, cambios de proveedor/modelo y acciones del menu
+- permitir reejecucion del ultimo prompt y cancelacion de solicitudes en curso
+- coordinar preview, apply, tests sugeridos y loops de fix
+- inicializar memoria de workspace y reconstruir indice al activar la extension
 
-### Runtime del asistente
+### Runtime de proveedores
 
 Archivo principal:
 
@@ -151,7 +162,12 @@ Responsabilidad:
 - resolver proveedor activo
 - autodetectar modelos de `Ollama` y `LM Studio`
 - hacer llamadas normales y en `streaming`
-- soportar configuracion local-first con fallback a proveedores remotos
+- soportar configuracion `local-first` con fallback a proveedores remotos
+- soportar respuestas de modo `edit` preparadas para `openml-edit`
+- integrar contexto profundo antes de cada llamada
+- manejar `Anthropic Messages API` con stream y fallback no-streaming
+- manejar `Azure Foundry Responses API`
+- filtrar el catalogo de modelos de `OpenAI` a familias utiles para chat/coding
 
 ### Secretos
 
@@ -165,7 +181,22 @@ Responsabilidad:
 - migrar API keys antiguas desde settings
 - exponer flujo seguro para captura de credenciales
 
-### Tools iniciales
+### Edicion asistida
+
+Archivo principal:
+
+- `apps/code-oss/extensions/openml-vibe-assistant/src/editing.ts`
+
+Responsabilidad:
+
+- extraer bloques `openml-edit`
+- construir preview Markdown y diff
+- abrir diff por archivo
+- aplicar cambios multiarchivo con aprobacion
+- mostrar tests sugeridos
+- cerrar previews obsoletos y refrescar el explorador despues de aplicar cambios
+
+### Tools profundas
 
 Archivo principal:
 
@@ -176,39 +207,103 @@ Responsabilidad:
 - lectura de archivos (`/read`)
 - busqueda simple en workspace (`/search`)
 - lectura de diff de Git (`/diff`)
+- lectura de diagnosticos (`/errors`)
+- ejecucion de tests (`/test`)
 - ejecucion de comandos con aprobacion (`/run`)
+- loops de fix (`/fix`)
+- memoria del proyecto (`/memory`, `/remember`, `/clear-memory`)
+- reglas persistentes (`/rules`, `/set-rule`, `/clear-rules`)
+- simbolos del workspace (`/symbols`)
+- contexto profundo (`/context`, `/reindex`)
+- canal de salida dedicado para ejecucion profunda
 
-## 6. Principios de arquitectura
+### Contexto profundo
+
+Archivos principales:
+
+- `apps/code-oss/extensions/openml-vibe-assistant/src/context.ts`
+- `apps/code-oss/extensions/openml-vibe-assistant/src/memory.ts`
+
+Responsabilidad:
+
+- indexar un subconjunto util del workspace en chunks
+- puntuar fragmentos relevantes para una consulta
+- consultar simbolos via LSP
+- persistir memoria y reglas por workspace
+- construir un bloque de contexto enriquecido para el modelo
+
+## 6. Flujo actual del fix loop
+
+El fix loop actual sigue este ciclo:
+
+1. el usuario ejecuta `/fix` o `/fix <comando>`
+2. el asistente corre tests y recoge diagnosticos
+3. se construye un prompt de correccion con ese contexto
+4. el modelo devuelve una propuesta `openml-edit`
+5. el usuario revisa y aplica cambios
+6. el asistente vuelve a correr tests automaticamente
+7. si aun falla, genera un nuevo intento hasta un limite controlado
+
+Este diseño mantiene al usuario en control de la aplicacion de cambios, pero automatiza la parte de revalidacion y siguiente intento.
+
+## 7. Flujo actual de contexto profundo
+
+1. el usuario envia una consulta o un prompt de edicion
+2. el asistente indexa o reutiliza el indice ligero del workspace
+3. recupera chunks relevantes segun la consulta y el archivo activo
+4. consulta simbolos del workspace por `WorkspaceSymbolProvider`
+5. incorpora memoria y reglas persistentes del workspace
+6. concatena ese bloque como `Deep workspace context` antes de llamar al modelo
+
+## 8. Principios de arquitectura
 
 1. Mantener el fork de VS Code lo mas delgado posible.
 2. Poner la mayor parte de la inteligencia en extensiones y paquetes compartidos.
 3. Diseñar herramientas explicitas y auditables en vez de prompts opacos.
 4. Pedir aprobacion antes de ejecutar comandos, editar muchos archivos o tocar configuracion sensible.
-5. Separar proveedor de modelos, render UI, secretos y tools desde el inicio.
+5. Separar proveedor de modelos, render UI, secretos, edicion, tools y contexto desde el inicio.
 6. Favorecer `local-first` siempre que el usuario tenga modelos corriendo localmente.
+7. Revalidar cambios automaticamente cuando el flujo ya tenga suficiente contexto para hacerlo de forma segura.
+8. Persistir conocimiento por workspace sin depender todavia de servicios externos.
 
-## 7. Estado real del MVP
+## 9. Estado real del producto hoy
 
-El MVP actual ya cubre:
+El producto actual ya cubre:
 
 - fork funcional de `Code - OSS`
 - branding tecnico principal
 - build y arranque local validados
+- ejecutable `omlcode.exe` en Windows
 - asistente builtin dentro del editor
 - proveedores locales y remotos
+- listado remoto de modelos para `Anthropic` y `OpenAI`
 - `streaming` de respuestas
 - `SecretStorage` para API keys
 - autodeteccion de modelos locales
 - renderizado Markdown de respuestas
-- tools iniciales del workspace
-- UX de chat mas cercana a otros IDEs modernos
+- tools del workspace
+- edicion asistida con preview/apply/tests
+- fix loop automatico de primera iteracion
+- contexto profundo funcional de primera iteracion
+- compatibilidad ajustada con `Anthropic Messages API`
+- proveedor `Azure Foundry` con `Responses API`
+- listados de modelos remotos para `Anthropic` y `OpenAI`
+- UI con `Run Again` y cancelacion en curso
 
 Todavia no cubre:
 
-- resaltado de sintaxis avanzado en bloques de codigo
-- acciones por snippet como `copy code`
-- edicion multiarchivo aplicada automaticamente
-- preview y aplicacion de diffs sobre archivos
-- memoria persistente del proyecto
-- indexado semantico y simbolos profundos
+- resaltado de sintaxis avanzado y acciones sobre snippets
+- parsing mas inteligente de errores de tests
+- embeddings o vector DB reales para contexto semantico
 - backend opcional / gateway centralizado
+- branding visual final del producto
+
+## 10. Riesgos tecnicos conocidos
+
+- mantener un fork profundo de VS Code encarece mucho el proyecto
+- el estado persistido del workbench puede hacer visibles restos de layout en perfiles viejos
+- el acceso al Marketplace oficial de Microsoft no debe asumirse para una distribucion propia
+- los builds de Windows dependen de modulos nativos sensibles al entorno
+- el modelo no siempre devuelve una propuesta `openml-edit`; se necesita seguir endureciendo prompts y validaciones
+- el fix loop actual es funcional, pero aun no prioriza automaticamente la causa raiz mas relevante entre varios fallos
+- el contexto profundo actual mejora mucho la precision, pero sigue siendo un indice local ligero y no una capa semantica avanzada

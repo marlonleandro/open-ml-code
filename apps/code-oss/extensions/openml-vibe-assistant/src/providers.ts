@@ -1,7 +1,8 @@
-import * as vscode from 'vscode';
+﻿import * as vscode from 'vscode';
+import { buildDeepContext } from './context';
 import { getProviderSecret } from './secrets';
 
-export type ProviderId = 'ollama' | 'lmstudio' | 'openai' | 'gemini' | 'anthropic' | 'openrouter';
+export type ProviderId = 'ollama' | 'lmstudio' | 'openai' | 'gemini' | 'anthropic' | 'openrouter' | 'azurefoundry';
 export type AssistantMode = 'agent' | 'ask' | 'edit' | 'plan';
 
 export interface WorkspacePrompt {
@@ -9,6 +10,7 @@ export interface WorkspacePrompt {
 	workspaceName: string;
 	activeFileName?: string;
 	selectedText?: string;
+	extraContext?: string;
 	systemPrompt: string;
 	mode?: AssistantMode;
 }
@@ -22,6 +24,8 @@ export type StreamCallbacks = {
 	onDelta: (chunk: string) => void;
 	onComplete?: (result: ProviderResponse) => void;
 };
+
+let activeRequestController: AbortController | undefined;
 
 function getConfig(): vscode.WorkspaceConfiguration {
 	return vscode.workspace.getConfiguration('openmlAssistant');
@@ -37,6 +41,24 @@ function getNumber(path: string, fallback: number): number {
 
 function getTimeout(): number {
 	return getNumber('requestTimeoutMs', 120000);
+}
+
+function createRequestSignal(): AbortSignal {
+	const timeoutSignal = AbortSignal.timeout(getTimeout());
+	activeRequestController = new AbortController();
+	return AbortSignal.any([timeoutSignal, activeRequestController.signal]);
+}
+
+function clearActiveRequestController(): void {
+	activeRequestController = undefined;
+}
+
+export function cancelActiveProviderRequest(): void {
+	activeRequestController?.abort();
+}
+
+export function isAbortError(error: unknown): boolean {
+	return error instanceof Error && (error.name === 'AbortError' || /aborted|cancelled|canceled/i.test(error.message));
 }
 
 function requireValue(value: string, label: string): string {
@@ -56,32 +78,40 @@ function buildHeaders(apiKey?: string, extraHeaders?: Record<string, string>): R
 }
 
 async function getJson(url: string, headers?: Record<string, string>): Promise<any> {
-	const response = await fetch(url, {
-		method: 'GET',
-		headers,
-		signal: AbortSignal.timeout(getTimeout())
-	});
+	try {
+		const response = await fetch(url, {
+			method: 'GET',
+			headers,
+			signal: createRequestSignal()
+		});
 
-	if (!response.ok) {
-		throw new Error(`Request failed (${response.status}): ${await response.text()}`);
+		if (!response.ok) {
+			throw new Error(`Request failed (${response.status}): ${await response.text()}`);
+		}
+
+		return response.json();
+	} finally {
+		clearActiveRequestController();
 	}
-
-	return response.json();
 }
 
 async function postJson(url: string, body: unknown, init: RequestInit = {}): Promise<any> {
-	const response = await fetch(url, {
-		method: 'POST',
-		...init,
-		body: JSON.stringify(body),
-		signal: AbortSignal.timeout(getTimeout())
-	});
+	try {
+		const response = await fetch(url, {
+			method: 'POST',
+			...init,
+			body: JSON.stringify(body),
+			signal: createRequestSignal()
+		});
 
-	if (!response.ok) {
-		throw new Error(`Request failed (${response.status}): ${await response.text()}`);
+		if (!response.ok) {
+			throw new Error(`Request failed (${response.status}): ${await response.text()}`);
+		}
+
+		return response.json();
+	} finally {
+		clearActiveRequestController();
 	}
-
-	return response.json();
 }
 
 async function postStream(url: string, body: unknown, init: RequestInit = {}): Promise<Response> {
@@ -89,14 +119,108 @@ async function postStream(url: string, body: unknown, init: RequestInit = {}): P
 		method: 'POST',
 		...init,
 		body: JSON.stringify(body),
-		signal: AbortSignal.timeout(getTimeout())
+		signal: createRequestSignal()
 	});
 
 	if (!response.ok) {
+		clearActiveRequestController();
 		throw new Error(`Request failed (${response.status}): ${await response.text()}`);
 	}
 
 	return response;
+}
+
+async function readSseStream(response: Response, onEvent: (json: any) => string | undefined): Promise<string> {
+	const reader = response.body?.getReader();
+	if (!reader) {
+		clearActiveRequestController();
+		throw new Error('Streaming response body is not available.');
+	}
+
+	const decoder = new TextDecoder();
+	let buffer = '';
+	let text = '';
+
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+
+			let boundary = buffer.indexOf('\n\n');
+			while (boundary >= 0) {
+				const block = buffer.slice(0, boundary);
+				buffer = buffer.slice(boundary + 2);
+				const dataLines = block
+					.split(/\r?\n/)
+					.filter(line => line.startsWith('data:'))
+					.map(line => line.slice(5).trim())
+					.filter(Boolean);
+
+				for (const dataLine of dataLines) {
+					if (dataLine === '[DONE]') {
+						return text;
+					}
+
+					const json = JSON.parse(dataLine);
+					const delta = onEvent(json);
+					if (delta) {
+						text += delta;
+					}
+				}
+
+				boundary = buffer.indexOf('\n\n');
+			}
+
+			if (done) {
+				break;
+			}
+		}
+
+		return text;
+	} finally {
+		clearActiveRequestController();
+	}
+}
+
+async function readNdjsonStream(response: Response, onEvent: (json: any) => string | undefined): Promise<string> {
+	const reader = response.body?.getReader();
+	if (!reader) {
+		clearActiveRequestController();
+		throw new Error('Streaming response body is not available.');
+	}
+
+	const decoder = new TextDecoder();
+	let buffer = '';
+	let text = '';
+
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+			const lines = buffer.split(/\r?\n/);
+			buffer = lines.pop() ?? '';
+
+			for (const line of lines) {
+				if (!line.trim()) {
+					continue;
+				}
+
+				const json = JSON.parse(line);
+				const delta = onEvent(json);
+				if (delta) {
+					text += delta;
+				}
+			}
+
+			if (done) {
+				break;
+			}
+		}
+
+		return text;
+	} finally {
+		clearActiveRequestController();
+	}
 }
 
 function getModeInstructions(mode: AssistantMode): string[] {
@@ -108,7 +232,8 @@ function getModeInstructions(mode: AssistantMode): string[] {
 				'Produce an implementation-oriented editing response in Markdown.',
 				'When the user asks for code changes, include a final ```openml-edit code block containing strict JSON with this shape: {"summary":"...","files":[{"path":"relative/path","content":"full file content"}],"tests":["test command or test idea"]}.',
 				'Paths in the openml-edit block must be relative to the workspace and each file content must be the full desired file content, not a patch.',
-				'Before the openml-edit block, explain the change, affected files, and any risks in Markdown.'
+				'Before the openml-edit block, explain the change, affected files, and any risks in Markdown.',
+			'Never truncate the JSON proposal. If the request is large, prioritize a minimal but functional scaffold that fits in one complete response.'
 			];
 		case 'plan':
 			return ['Create a practical implementation plan in Markdown with files, risks, and steps.'];
@@ -116,7 +241,8 @@ function getModeInstructions(mode: AssistantMode): string[] {
 		default:
 			return [
 				'Act like a coding agent helping inside an IDE and respond in Markdown.',
-				'If the request clearly requires code edits, you may include a final ```openml-edit code block with strict JSON using full file contents for each changed file.'
+				'If the request clearly requires code edits, you may include a final ```openml-edit code block with strict JSON using full file contents for each changed file.',
+				'When asked to create or implement something, do not stop at recommendations. Return a complete editable proposal. Never truncate the JSON proposal; if needed, reduce scope to a minimal functional scaffold.'
 			];
 	}
 }
@@ -137,91 +263,11 @@ function createUserPrompt(input: WorkspacePrompt): string {
 		input.prompt,
 		'',
 		'Workspace context:',
-		...contextLines
-	].join('\n');
-}
-
-async function readSseStream(response: Response, onEvent: (json: any) => string | undefined): Promise<string> {
-	const reader = response.body?.getReader();
-	if (!reader) {
-		throw new Error('Streaming response body is not available.');
-	}
-
-	const decoder = new TextDecoder();
-	let buffer = '';
-	let text = '';
-
-	while (true) {
-		const { done, value } = await reader.read();
-		buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
-
-		let boundary = buffer.indexOf('\n\n');
-		while (boundary >= 0) {
-			const block = buffer.slice(0, boundary);
-			buffer = buffer.slice(boundary + 2);
-			const dataLines = block
-				.split(/\r?\n/)
-				.filter(line => line.startsWith('data:'))
-				.map(line => line.slice(5).trim())
-				.filter(Boolean);
-
-			for (const dataLine of dataLines) {
-				if (dataLine === '[DONE]') {
-					return text;
-				}
-
-				const json = JSON.parse(dataLine);
-				const delta = onEvent(json);
-				if (delta) {
-					text += delta;
-				}
-			}
-
-			boundary = buffer.indexOf('\n\n');
-		}
-
-		if (done) {
-			break;
-		}
-	}
-
-	return text;
-}
-
-async function readNdjsonStream(response: Response, onEvent: (json: any) => string | undefined): Promise<string> {
-	const reader = response.body?.getReader();
-	if (!reader) {
-		throw new Error('Streaming response body is not available.');
-	}
-
-	const decoder = new TextDecoder();
-	let buffer = '';
-	let text = '';
-
-	while (true) {
-		const { done, value } = await reader.read();
-		buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
-		const lines = buffer.split(/\r?\n/);
-		buffer = lines.pop() ?? '';
-
-		for (const line of lines) {
-			if (!line.trim()) {
-				continue;
-			}
-
-			const json = JSON.parse(line);
-			const delta = onEvent(json);
-			if (delta) {
-				text += delta;
-			}
-		}
-
-		if (done) {
-			break;
-		}
-	}
-
-	return text;
+		...contextLines,
+		input.extraContext ? '' : undefined,
+		input.extraContext ? 'Deep workspace context:' : undefined,
+		input.extraContext || undefined
+	].filter(Boolean).join('\n');
 }
 
 function getModelConfigPath(provider: ProviderId): string {
@@ -232,6 +278,7 @@ function getModelConfigPath(provider: ProviderId): string {
 		case 'gemini': return 'gemini.model';
 		case 'anthropic': return 'anthropic.model';
 		case 'openrouter': return 'openRouter.model';
+		case 'azurefoundry': return 'azureFoundry.deployment';
 	}
 }
 
@@ -241,6 +288,100 @@ function normalizeOpenAIModel(model: string): string {
 		case 'gpt-5.4-mini': return 'gpt-5-mini';
 		default: return model.trim();
 	}
+}
+
+function isAllowedOpenAIModel(modelId: string): boolean {
+	const id = modelId.trim().toLowerCase();
+	if (!id) {
+		return false;
+	}
+
+	const prefixes = ['gpt-4', 'gpt-4.', 'gpt-4o', 'gpt-5', 'gpt-5.'];
+	if (!prefixes.some(prefix => id.startsWith(prefix))) {
+		return false;
+	}
+
+	const blockedMarkers = ['audio', 'realtime', 'transcribe', 'tts', 'image', 'embedding', 'moderation', 'search', 'vision-preview'];
+	if (blockedMarkers.some(marker => id.includes(marker))) {
+		return false;
+	}
+
+	const sizeMarkers = ['mini', 'max', 'pro'];
+	const hasKnownSize = sizeMarkers.some(marker => id.includes(marker));
+	return hasKnownSize || /^gpt-4(?:[.-]|$)/.test(id) || /^gpt-4o(?:[.-]|$)/.test(id) || /^gpt-5(?:[.-]|$)/.test(id);
+}
+
+function buildAnthropicMessagesUrl(baseUrl: string): string {
+	const normalized = baseUrl.trim().replace(/\/$/, '');
+	if (normalized.endsWith('/messages')) {
+		return normalized;
+	}
+	return `${normalized}/messages`;
+}
+
+function buildAnthropicModelsUrl(baseUrl: string): string {
+	const normalized = baseUrl.trim().replace(/\/$/, '');
+	if (normalized.endsWith('/models')) {
+		return normalized;
+	}
+	if (normalized.endsWith('/messages')) {
+		return normalized.replace(/\/messages$/, '/models');
+	}
+	return `${normalized}/models`;
+}
+
+function extractAnthropicText(json: any): string {
+	return (json?.content ?? [])
+		.filter((block: { type?: string; text?: string }) => block?.type === 'text' && typeof block?.text === 'string')
+		.map((block: { text?: string }) => block.text ?? '')
+		.join('')
+		.trim();
+}
+
+function buildAzureFoundryResponsesUrl(host: string, apiVersion: string): string {
+	const normalizedHost = host.trim().replace(/\/$/, '');
+	const normalizedVersion = apiVersion.trim() || '2025-04-01-preview';
+	return `${normalizedHost}/openai/responses?api-version=${encodeURIComponent(normalizedVersion)}`;
+}
+
+function buildAzureFoundryHeaders(apiKey: string, authMode: string): Record<string, string> {
+	return authMode === 'api-key'
+		? { 'Content-Type': 'application/json', 'api-key': apiKey }
+		: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
+}
+
+function extractResponsesApiText(json: any): string {
+	return (json?.output ?? [])
+		.filter((item: { type?: string }) => item?.type === 'message')
+		.flatMap((item: { content?: Array<{ type?: string; text?: string }> }) => item?.content ?? [])
+		.filter((part: { type?: string; text?: string }) => part?.type === 'output_text' && typeof part?.text === 'string')
+		.map((part: { text?: string }) => part.text ?? '')
+		.join('')
+		.trim();
+}
+
+async function callAzureFoundry(input: WorkspacePrompt): Promise<ProviderResponse> {
+	const host = requireValue(getString('azureFoundry.host'), 'openmlAssistant.azureFoundry.host');
+	const apiVersion = getString('azureFoundry.apiVersion', '2025-04-01-preview');
+	const apiKey = requireValue(await getProviderSecret('azurefoundry'), 'Azure Foundry API key');
+	const deployment = requireValue(getString('azureFoundry.deployment'), 'openmlAssistant.azureFoundry.deployment');
+	const authMode = getString('azureFoundry.authMode', 'bearer') || 'bearer';
+	const json = await postJson(buildAzureFoundryResponsesUrl(host, apiVersion), {
+		model: deployment,
+		input: createUserPrompt(input),
+		instructions: input.systemPrompt,
+		max_output_tokens: getNumber('azureFoundry.maxOutputTokens', 8192),
+		text: { format: { type: 'text' }, verbosity: 'medium' }
+	}, {
+		headers: buildAzureFoundryHeaders(apiKey, authMode)
+	});
+
+	const text = extractResponsesApiText(json);
+	if (!text) {
+		throw new Error('Azure Foundry response did not include visible text content.');
+	}
+
+	return { text, model: deployment };
 }
 
 export function getActiveProvider(): ProviderId {
@@ -256,7 +397,7 @@ export async function setModelForProvider(provider: ProviderId, model: string): 
 }
 
 export function getSystemPrompt(): string {
-	return getString('systemPrompt', 'You are OpenML Code Assistant. Produce practical implementation plans with concrete files, steps, risks, and tests. When working in edit mode, prefer responses that can be previewed and applied safely inside the IDE.');
+	return getString('systemPrompt', 'You are OpenML Code Assistant. Produce practical implementation plans with concrete files, steps, risks, tests, and workspace-aware reasoning. When working in edit mode, prefer responses that can be previewed and applied safely inside the IDE.');
 }
 
 export function getCurrentModelLabel(provider = getActiveProvider()): string {
@@ -267,6 +408,7 @@ export function getCurrentModelLabel(provider = getActiveProvider()): string {
 		case 'gemini': return getString('gemini.model');
 		case 'anthropic': return getString('anthropic.model');
 		case 'openrouter': return getString('openRouter.model');
+		case 'azurefoundry': return getString('azureFoundry.deployment');
 	}
 }
 
@@ -282,10 +424,11 @@ export function providerDisplayName(provider: ProviderId): string {
 		case 'gemini': return 'Gemini';
 		case 'anthropic': return 'Anthropic';
 		case 'openrouter': return 'OpenRouter';
+		case 'azurefoundry': return 'Azure Foundry';
 	}
 }
 
-export const providerOptions: ProviderId[] = ['ollama', 'lmstudio', 'openai', 'gemini', 'anthropic', 'openrouter'];
+export const providerOptions: ProviderId[] = ['ollama', 'lmstudio', 'openai', 'gemini', 'anthropic', 'openrouter', 'azurefoundry'];
 export const assistantModes: AssistantMode[] = ['agent', 'ask', 'edit', 'plan'];
 
 async function streamOpenAICompatible(baseUrl: string, model: string, input: WorkspacePrompt, callbacks: StreamCallbacks, apiKey?: string, extraHeaders?: Record<string, string>, options?: { temperature?: number }): Promise<ProviderResponse> {
@@ -322,7 +465,7 @@ async function callGemini(input: WorkspacePrompt): Promise<ProviderResponse> {
 	const json = await postJson(`${baseUrl.replace(/\/$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
 		systemInstruction: { parts: [{ text: input.systemPrompt }] },
 		contents: [{ role: 'user', parts: [{ text: createUserPrompt(input) }] }],
-		generationConfig: { temperature: 0.2 }
+		generationConfig: { temperature: 0.2, maxOutputTokens: getNumber('gemini.maxOutputTokens', 16384) }
 	}, {
 		headers: { 'Content-Type': 'application/json' }
 	});
@@ -347,6 +490,26 @@ export async function listAvailableModels(provider = getActiveProvider()): Promi
 				const baseUrl = requireValue(getString('lmStudio.baseUrl', 'http://127.0.0.1:1234/v1'), 'openmlAssistant.lmStudio.baseUrl');
 				const json = await getJson(`${baseUrl.replace(/\/$/, '')}/models`);
 				return (json?.data ?? []).map((model: { id?: string }) => model.id ?? '').filter(Boolean);
+			}
+			case 'openai': {
+				const baseUrl = requireValue(getString('openai.baseUrl', 'https://api.openai.com/v1'), 'openmlAssistant.openai.baseUrl');
+				const apiKey = requireValue(await getProviderSecret('openai'), 'OpenAI API key');
+				const json = await getJson(`${baseUrl.replace(/\/$/, '')}/models`, {
+					Authorization: `Bearer ${apiKey}`
+				});
+				return (json?.data ?? [])
+					.map((model: { id?: string }) => model.id ?? '')
+					.filter((modelId: string) => !!modelId && isAllowedOpenAIModel(modelId))
+					.sort((a: string, b: string) => a.localeCompare(b));
+			}
+			case 'anthropic': {
+				const baseUrl = requireValue(getString('anthropic.baseUrl', 'https://api.anthropic.com/v1'), 'openmlAssistant.anthropic.baseUrl');
+				const apiKey = requireValue(await getProviderSecret('anthropic'), 'Anthropic API key');
+				const json = await getJson(buildAnthropicModelsUrl(baseUrl), {
+					'x-api-key': apiKey,
+					'anthropic-version': '2023-06-01'
+				});
+				return (json?.data ?? []).map((model: { id?: string; display_name?: string }) => model.id ?? model.display_name ?? '').filter(Boolean);
 			}
 			default:
 				return [];
@@ -388,6 +551,10 @@ export async function requestAssistantResponse(input: WorkspacePrompt): Promise<
 
 export async function streamAssistantResponse(input: WorkspacePrompt, callbacks: StreamCallbacks): Promise<ProviderResponse> {
 	const provider = getActiveProvider();
+	const enrichedInput: WorkspacePrompt = {
+		...input,
+		extraContext: await buildDeepContext(input.prompt, input.activeFileName, input.selectedText)
+	};
 
 	switch (provider) {
 		case 'ollama': {
@@ -397,8 +564,8 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 				model,
 				stream: true,
 				messages: [
-					{ role: 'system', content: input.systemPrompt },
-					{ role: 'user', content: createUserPrompt(input) }
+					{ role: 'system', content: enrichedInput.systemPrompt },
+					{ role: 'user', content: createUserPrompt(enrichedInput) }
 				],
 				options: { temperature: 0.2 }
 			});
@@ -417,16 +584,16 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 		case 'lmstudio': {
 			const baseUrl = requireValue(getString('lmStudio.baseUrl', 'http://127.0.0.1:1234/v1'), 'openmlAssistant.lmStudio.baseUrl');
 			const model = requireValue(getString('lmStudio.model', 'local-model'), 'openmlAssistant.lmStudio.model');
-			return streamOpenAICompatible(baseUrl, model, input, callbacks, undefined, undefined, { temperature: 0.2 });
+			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, undefined, undefined, { temperature: 0.2 });
 		}
 		case 'openai': {
 			const baseUrl = requireValue(getString('openai.baseUrl', 'https://api.openai.com/v1'), 'openmlAssistant.openai.baseUrl');
 			const apiKey = requireValue(await getProviderSecret('openai'), 'OpenAI API key');
 			const model = normalizeOpenAIModel(requireValue(getString('openai.model'), 'openmlAssistant.openai.model'));
-			return streamOpenAICompatible(baseUrl, model, input, callbacks, apiKey);
+			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey);
 		}
 		case 'gemini': {
-			const result = await callGemini(input);
+			const result = await callGemini(enrichedInput);
 			callbacks.onDelta(result.text);
 			callbacks.onComplete?.(result);
 			return result;
@@ -435,27 +602,44 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 			const baseUrl = requireValue(getString('anthropic.baseUrl', 'https://api.anthropic.com/v1'), 'openmlAssistant.anthropic.baseUrl');
 			const apiKey = requireValue(await getProviderSecret('anthropic'), 'Anthropic API key');
 			const model = requireValue(getString('anthropic.model'), 'openmlAssistant.anthropic.model');
-			const response = await postStream(`${baseUrl.replace(/\/$/, '')}/messages`, {
+			const url = buildAnthropicMessagesUrl(baseUrl);
+			const headers = {
+				'Content-Type': 'application/json',
+				'x-api-key': apiKey,
+				'anthropic-version': '2023-06-01'
+			};
+			const body = {
 				model,
-				max_tokens: 1800,
+				max_tokens: getNumber('anthropic.maxOutputTokens', 8192),
 				stream: true,
-				system: input.systemPrompt,
-				messages: [{ role: 'user', content: createUserPrompt(input) }]
-			}, {
-				headers: {
-					'Content-Type': 'application/json',
-					'x-api-key': apiKey,
-					'anthropic-version': '2023-06-01'
+				system: enrichedInput.systemPrompt,
+				messages: [{ role: 'user', content: [{ type: 'text', text: createUserPrompt(enrichedInput) }] }]
+			};
+			const response = await postStream(url, body, { headers });
+			let text = await readSseStream(response, json => {
+				if (json?.type === 'error') {
+					throw new Error(json?.error?.message ?? 'Anthropic streaming request failed.');
 				}
-			});
-			const text = await readSseStream(response, json => {
-				const delta = json?.delta?.text;
+				const delta = json?.type === 'content_block_delta' && json?.delta?.type === 'text_delta'
+					? json?.delta?.text
+					: undefined;
 				if (typeof delta === 'string' && delta) {
 					callbacks.onDelta(delta);
 					return delta;
 				}
 				return undefined;
 			});
+			if (!text.trim()) {
+				const fallback = await postJson(url, {
+					...body,
+					stream: false
+				}, { headers });
+				text = extractAnthropicText(fallback);
+				if (!text) {
+					throw new Error('Anthropic response did not include visible text content.');
+				}
+				callbacks.onDelta(text);
+			}
 			const result = { text, model };
 			callbacks.onComplete?.(result);
 			return result;
@@ -468,11 +652,19 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 				'HTTP-Referer': getString('openRouter.siteUrl', 'https://openml-code.local'),
 				'X-Title': getString('openRouter.appName', 'OpenML Code')
 			};
-			return streamOpenAICompatible(baseUrl, model, input, callbacks, apiKey, extraHeaders, { temperature: 0.2 });
+			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey, extraHeaders, { temperature: 0.2 });
+		}
+		case 'azurefoundry': {
+			const result = await callAzureFoundry(enrichedInput);
+			callbacks.onDelta(result.text);
+			callbacks.onComplete?.(result);
+			return result;
 		}
 		default:
 			throw new Error(`Unsupported provider: ${provider satisfies never}`);
 	}
 }
+
+
 
 

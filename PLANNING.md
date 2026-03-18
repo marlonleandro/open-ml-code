@@ -2,7 +2,12 @@
 
 ## 1. Objetivo del proyecto
 
-Construir `OpenML Code`, un IDE propio basado en `Code - OSS`, con una experiencia de desarrollo AI `local-first`, mantenible en el tiempo y orientada a edicion asistida, herramientas de ejecucion y loops de correccion.
+Construir `OpenML Code`, un IDE propio basado en `Code - OSS`, con una experiencia AI `local-first`, mantenible en el tiempo y orientada a:
+
+1. chat y asistencia contextual
+2. edicion asistida multiarchivo
+3. ejecucion controlada dentro del IDE
+4. contexto profundo de workspace
 
 La estrategia sigue siendo de dos capas:
 
@@ -16,7 +21,7 @@ La estrategia sigue siendo de dos capas:
 - Tema por defecto: `OpenML Prussian Blue`
 - Ejecutable en Windows: `omlcode.exe`
 - Flujo principal de modelos: `Ollama` y `LM Studio`
-- Proveedores remotos soportados: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`
+- Proveedores remotos soportados: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, `Azure Foundry`
 - Chat propio ubicado en la barra lateral derecha
 - `GitHub Copilot` removido como chat por defecto del producto
 - API keys remotas guardadas en `SecretStorage`
@@ -85,6 +90,8 @@ CustomIDE/
 - `apps/code-oss/extensions/openml-vibe-assistant/src/secrets.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/editing.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/tools.ts`
+- `apps/code-oss/extensions/openml-vibe-assistant/src/context.ts`
+- `apps/code-oss/extensions/openml-vibe-assistant/src/memory.ts`
 
 ## 6. Capacidades actuales de OpenML Assistant
 
@@ -93,11 +100,16 @@ CustomIDE/
 - vista propia en la barra lateral derecha
 - modos `agent`, `ask`, `edit`, `plan`
 - `streaming` de respuestas
-- soporte para `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic` y `OpenRouter`
+- soporte para `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter` y `Azure Foundry`
 - autodeteccion de modelos para `Ollama` y `LM Studio`
+- listado remoto de modelos para `Anthropic` y `OpenAI` usando la API key guardada
 - selector de proveedor y modelo desde la UI
 - renderizado Markdown real en respuestas
 - envio con `Enter` y salto de linea con `Shift+Enter`
+- opcion `Run Again` para relanzar el ultimo prompt con el modelo actual
+- boton `Send` que cambia a `Stop` durante la ejecucion y permite cancelar la solicitud activa
+- compatibilidad reforzada con la API de `Anthropic` para `POST /v1/messages` con stream y fallback no-streaming
+- proveedor `Azure Foundry` via `Responses API`
 
 ### Seguridad y configuracion
 
@@ -114,6 +126,15 @@ CustomIDE/
 - `/test [command]`
 - `/run <command>`
 - `/fix [test command]`
+- `/memory`
+- `/remember <note>`
+- `/clear-memory`
+- `/rules`
+- `/set-rule <rule>`
+- `/clear-rules`
+- `/symbols <query>`
+- `/context <query>`
+- `/reindex`
 
 ### Edicion asistida
 
@@ -124,21 +145,29 @@ CustomIDE/
 - tests sugeridos
 - comando `OpenML Assistant: Edit With Preview`
 
-### Fase 4 ya iniciada
+### Ejecucion profunda
 
 - terminal controlada mas rica via output channel `OpenML Assistant Tools`
 - ejecucion de tests con autodeteccion basica
 - lectura de diagnosticos del editor
-- loop inicial de fix
-- re-check automatico despues de `Apply Edits`
+- fix loop automatico con re-check despues de `Apply Edits`
 - reintentos automaticos del fix loop hasta un limite controlado
+
+### Contexto profundo
+
+- indexado semantico ligero del workspace
+- recuperacion de fragmentos relevantes por scoring lexical local
+- consulta de simbolos por `WorkspaceSymbolProvider`
+- memoria persistente de proyecto por workspace
+- reglas persistentes por workspace
+- inyeccion automatica de contexto profundo en los prompts del asistente
 
 ## 7. Limitaciones actuales
 
 - el modelo no siempre devuelve un bloque `openml-edit`; cuando eso pasa no se puede aplicar la respuesta como cambio estructurado
 - el resaltado de sintaxis de snippets en el chat todavia es basico
-- aun no existe memoria persistente del proyecto ni indexado semantico profundo
 - el parsing de errores de tests todavia es generico; no prioriza los fallos mas relevantes
+- el indexado semantico actual es ligero y local; aun no usa embeddings ni vector DB
 - no se ha completado el branding visual final del producto
 
 ## 8. Estado del build
@@ -198,7 +227,7 @@ Estado: completada en su primera version funcional
 - lectura de errores
 - loops de fix
 
-Estado: avanzada y funcional en primera iteracion
+Estado: completada en su primera version funcional
 
 ### Fase 5. Contexto profundo
 
@@ -207,7 +236,7 @@ Estado: avanzada y funcional en primera iteracion
 - memoria de proyecto
 - reglas persistentes por workspace
 
-Estado: pendiente
+Estado: completada en su primera version funcional
 
 ### Fase 6. Producto distribuible
 
@@ -224,6 +253,8 @@ Estado: pendiente
 - el estado persistido del workbench puede dejar restos de layout en perfiles viejos
 - el acceso al Marketplace oficial de Microsoft no debe asumirse para la distribucion final
 - el build de Windows sigue dependiendo de modulos nativos y toolchain correcto
+- algunos modelos siguen siendo inconsistentes devolviendo propuestas editables estructuradas
+- los catalogos remotos de modelos pueden incluir ids no deseados; hoy el listado de `OpenAI` ya se filtra a familias utiles para chat/coding
 
 ## 11. Comandos utiles
 
@@ -247,8 +278,9 @@ pnpm build
 
 ## 12. Siguientes pasos recomendados
 
-1. hacer configurable el numero maximo de intentos del fix loop
-2. mejorar el parser de errores para priorizar fallos importantes antes del siguiente parche
-3. añadir acciones sobre snippets (`copy code`, etc.) y mejor resaltado visual
-4. definir icono/logo definitivo y completar branding multiplataforma
-5. avanzar hacia contexto profundo, indexado y memoria de proyecto
+1. mejorar el render visual de snippets y acciones sobre codigo
+2. hacer configurable el numero maximo de intentos del fix loop
+3. mejorar el parser de errores para priorizar la causa raiz
+4. fortalecer todavia mas el batching automatico cuando un proveedor remoto trunque respuestas
+5. definir icono/logo definitivo y completar branding multiplataforma
+6. evaluar una capa de indexado semantico mas rica con embeddings o servicio opcional

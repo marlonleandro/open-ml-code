@@ -1,4 +1,4 @@
-import * as vscode from 'vscode';
+﻿import * as vscode from 'vscode';
 import {
 	assistantModes,
 	getActiveProvider,
@@ -12,11 +12,14 @@ import {
 	setModelForProvider,
 	streamAssistantResponse,
 	syncLocalModelSelection,
+	cancelActiveProviderRequest,
+	isAbortError,
 	type AssistantMode,
 	type ProviderId
 } from './providers';
-import { applyEditProposal, extractEditProposal, previewEditProposal, showSuggestedTests, stripEditProposalBlock, type EditProposal } from './editing';
+import { applyEditProposal, buildUserFacingEditSummary, clearEditPreviewArtifacts, extractEditProposal, looksLikePartialEditProposal, previewEditProposal, showSuggestedTests, stripEditProposalBlock, type EditProposal } from './editing';
 import { buildFixLoopPrompt, maxFixAttempts, runTestsCommand, tryHandleToolPrompt } from './tools';
+import { clearProjectChatHistory, loadProjectChatHistory, saveProjectChatHistory, updatePlanningFile, writeActivityLog, type PersistedChatMessage } from './projectState';
 
 type ChatRole = 'user' | 'assistant' | 'status';
 
@@ -38,7 +41,10 @@ type WebviewInboundMessage =
 	| { type: 'applyEdits' }
 	| { type: 'showSuggestedTests' }
 	| { type: 'copyLastResponse' }
-	| { type: 'insertLastResponse' };
+	| { type: 'insertLastResponse' }
+	| { type: 'clearHistory' }
+	| { type: 'rerunLastPrompt' }
+	| { type: 'cancelRequest' };
 
 type WebviewOutboundMessage =
 	| { type: 'state'; state: ChatState }
@@ -47,6 +53,15 @@ type WebviewOutboundMessage =
 	| { type: 'error'; message: string };
 
 type ChatState = {
+	provider: ProviderId;
+	providerLabel: string;
+	modelLabel: string;
+	models: string[];
+	localFirst: boolean;
+	mode: AssistantMode;
+	hasEditProposal: boolean;
+	suggestedTestsCount: number;
+	messages: ChatMessage[];
 };
 
 type FixLoopState = {
@@ -59,7 +74,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 
 	private webviewView: vscode.WebviewView | undefined;
 	private readonly disposables: vscode.Disposable[] = [];
-	private readonly messages: ChatMessage[] = [
+	private messages: ChatMessage[] = [
 		{ role: 'status', content: 'Local-first ready. Use Ollama or LM Studio as your primary workflow.' }
 	];
 	private readonly modelsByProvider = new Map<ProviderId, string[]>();
@@ -71,6 +86,9 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 	private mode: AssistantMode = 'agent';
 	private pendingPrompt: string | undefined;
 	private pendingMode: AssistantMode | undefined;
+	private historyLoaded = false;
+	private historySummary = '';
+	private lastUserPrompt = '';
 
 	constructor(extensionUri: vscode.Uri) {
 		this.extensionUri = extensionUri;
@@ -112,6 +130,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 	}
 
 	async refresh(): Promise<void> {
+		await this.ensureProjectHistoryLoaded();
 		await this.syncState(true);
 	}
 
@@ -121,9 +140,139 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		}
 	}
 
+	private async ensureProjectHistoryLoaded(): Promise<void> {
+		if (this.historyLoaded) {
+			return;
+		}
+
+		const history = await loadProjectChatHistory();
+		this.historySummary = history.summary;
+		const restoredMessages = history.messages.map<ChatMessage>(message => ({
+			role: message.role,
+			content: message.content
+		}));
+		this.messages = [
+			{ role: 'status', content: 'Local-first ready. Use Ollama or LM Studio as your primary workflow.' },
+			...restoredMessages
+		];
+		this.historyLoaded = true;
+	}
+
+	private toPersistedMessages(): PersistedChatMessage[] {
+		return this.messages
+			.filter((message): message is ChatMessage & { role: 'user' | 'assistant' } => message.role === 'user' || message.role === 'assistant')
+			.map(message => ({
+				role: message.role,
+				content: message.content,
+				createdAt: new Date().toISOString()
+			}));
+	}
+
+	private async persistProjectHistory(): Promise<void> {
+		const persisted = await saveProjectChatHistory(this.toPersistedMessages(), this.historySummary);
+		this.historySummary = persisted.summary;
+		this.messages = [
+			this.messages[0] ?? { role: 'status', content: 'Local-first ready. Use Ollama or LM Studio as your primary workflow.' },
+			...persisted.messages.map<ChatMessage>(message => ({ role: message.role, content: message.content }))
+		];
+	}
+
+	private async writeProjectArtifacts(prompt: string, output: string, mode: AssistantMode, kind: 'conversation' | 'execution'): Promise<void> {
+		if (mode === 'agent' || mode === 'plan') {
+			await updatePlanningFile(prompt, output, this.historySummary);
+		}
+
+		const hasImplementationProgress = kind === 'execution' || !!this.lastEditProposal?.files.length;
+		if (!hasImplementationProgress) {
+			return;
+		}
+
+		const label = kind === 'execution' ? 'execution' : mode;
+		await writeActivityLog(label, prompt, output);
+	}
+
+	private promptImpliesImplementation(prompt: string): boolean {
+		const normalized = prompt.toLowerCase();
+		return [
+			'crear',
+			'crea',
+			'generar',
+			'genera',
+			'implementar',
+			'implementa',
+			'construir',
+			'construye',
+			'refactor',
+			'refactoriza',
+			'optimiza',
+			'optimiz',
+			'configura',
+			'configurar',
+			'add ',
+			'create ',
+			'generate ',
+			'implement ',
+			'build ',
+			'refactor ',
+			'optimize ',
+			'modifica',
+			'modificar',
+			'edita',
+			'editar',
+			'archivo',
+			'componente',
+			'feature',
+			'proyecto',
+			'estructura'
+		].some(keyword => normalized.includes(keyword));
+	}
+
+	private isShortAffirmation(prompt: string): boolean {
+		const normalized = prompt.toLowerCase().trim().replace(/[.!?]+$/g, '');
+		return ['si', 's?', 'dale', 'procede', 'hazlo', 'continua', 'contin?a', 'ok', 'okay', 'de acuerdo', 'adelante'].includes(normalized);
+	}
+
+	private shouldContinuePreviousImplementation(): boolean {
+		const previous = this.lastAssistantResponse.toLowerCase();
+		return [
+			'deseas que proceda',
+			'prefieres',
+			'proceed',
+			'next steps',
+			'pr?ximos pasos sugeridos',
+			'proceed with',
+			'?deseas',
+			'deseas que continuemos'
+		].some(marker => previous.includes(marker));
+	}
+
+	private buildContinuationPrompt(userReply: string): string {
+		return [
+			'Proceed with the implementation described in the previous assistant response.',
+			'Create or modify the necessary workspace files now.',
+			'Return the result as an openml-edit proposal with full file contents for every file to create or update.',
+			'Include suggested tests.',
+			`User confirmation: ${userReply}`
+		].join(' ');
+	}
+
+	private buildChunkedRetryPrompt(originalPrompt: string): string {
+		return [
+			originalPrompt,
+			'',
+			'Retry this task because the previous editable proposal was truncated.',
+			'Return only the first batch of the most essential files needed for a minimal functional scaffold.',
+			'Limit the result to a maximum of 6 files.',
+			'Prioritize package.json, config files, entry points, and the smallest set of feature files required to run.',
+			'Do not include optional improvements, long explanations, roadmap notes, or setup sections.',
+			'Return a complete openml-edit proposal with valid full file contents and suggested tests.'
+		].join('\n');
+	}
+
 	private async onMessage(message: WebviewInboundMessage): Promise<void> {
 		switch (message.type) {
 			case 'ready':
+				await this.ensureProjectHistoryLoaded();
 				await this.syncState(true);
 				if (this.pendingMode) {
 					this.mode = this.pendingMode;
@@ -179,30 +328,55 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			case 'insertLastResponse':
 				await this.insertLastResponse();
 				return;
+			case 'clearHistory':
+				await this.clearHistory();
+				return;
+			case 'rerunLastPrompt':
+				if (this.lastUserPrompt) {
+					await this.handlePrompt(this.lastUserPrompt);
+				}
+				return;
+			case 'cancelRequest':
+				cancelActiveProviderRequest();
+				return;
 		}
 	}
 
 	private async handlePrompt(prompt: string): Promise<void> {
+		await this.ensureProjectHistoryLoaded();
 		const trimmedPrompt = prompt.trim();
 		if (!trimmedPrompt || this.isBusy) {
 			return;
 		}
 
+		this.lastUserPrompt = trimmedPrompt;
+
 		let requestPrompt = trimmedPrompt;
 		let requestMode = this.mode;
+		let interactionKind: 'conversation' | 'execution' = 'conversation';
+
+		if (this.mode === 'agent' && this.isShortAffirmation(trimmedPrompt) && this.shouldContinuePreviousImplementation()) {
+			requestPrompt = this.buildContinuationPrompt(trimmedPrompt);
+			requestMode = 'edit';
+		} else if (this.mode === 'agent' && this.promptImpliesImplementation(trimmedPrompt)) {
+			requestMode = 'edit';
+		}
 
 		const toolResult = await tryHandleToolPrompt(trimmedPrompt);
 		if (toolResult) {
 			this.lastEditProposal = undefined;
 			this.messages.push({ role: 'assistant', content: `## ${toolResult.title}\n\n${toolResult.content}` });
 			this.lastAssistantResponse = toolResult.content;
+			await this.persistProjectHistory();
 			await this.syncState();
+			await this.writeProjectArtifacts(trimmedPrompt, toolResult.content, this.mode, 'execution');
 			if (!toolResult.followUpPrompt) {
 				return;
 			}
 
 			requestPrompt = toolResult.followUpPrompt;
 			requestMode = toolResult.preferredMode ?? 'edit';
+			interactionKind = 'execution';
 			if (toolResult.fixLoopCommand) {
 				this.activeFixLoop = { command: toolResult.fixLoopCommand, attempt: toolResult.fixLoopAttempt ?? 1 };
 			}
@@ -212,6 +386,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				this.activeFixLoop = undefined;
 			}
 		}
+
 		const assistantMessage: ChatMessage = { role: 'assistant', content: '' };
 		this.messages.push(assistantMessage);
 		this.lastEditProposal = undefined;
@@ -221,14 +396,15 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 
 		const editor = vscode.window.activeTextEditor;
 
-		try {
+		const runAssistantRequest = async (promptText: string, modeText: AssistantMode): Promise<string> => {
+			assistantMessage.content = '';
 			await streamAssistantResponse({
-				prompt: requestPrompt,
+				prompt: promptText,
 				workspaceName: vscode.workspace.name ?? 'workspace',
 				activeFileName: editor?.document.fileName,
 				selectedText: editor?.document.getText(editor.selection).trim() || undefined,
 				systemPrompt: getSystemPrompt(),
-				mode: requestMode
+				mode: modeText
 			}, {
 				onDelta: chunk => {
 					assistantMessage.content += chunk;
@@ -236,13 +412,32 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 					void this.syncState();
 				}
 			});
+			return assistantMessage.content;
+		};
 
-			const editProposal = extractEditProposal(assistantMessage.content);
+		try {
+			let rawResponse = await runAssistantRequest(requestPrompt, requestMode);
+			let editProposal = extractEditProposal(rawResponse);
+			let truncatedProposal = !editProposal && requestMode === 'edit' && looksLikePartialEditProposal(rawResponse);
+
+			if (!editProposal && truncatedProposal) {
+				assistantMessage.content = 'La respuesta del modelo llego truncada. Reintentando automaticamente con un lote mas pequeno...';
+				this.lastAssistantResponse = assistantMessage.content;
+				await this.syncState();
+				rawResponse = await runAssistantRequest(this.buildChunkedRetryPrompt(trimmedPrompt), 'edit');
+				editProposal = extractEditProposal(rawResponse);
+				truncatedProposal = !editProposal && looksLikePartialEditProposal(rawResponse);
+			}
+
 			if (editProposal) {
 				this.lastEditProposal = editProposal;
-				assistantMessage.content = stripEditProposalBlock(assistantMessage.content);
-			} else if (this.mode === 'edit') {
-				assistantMessage.content = `${assistantMessage.content.trim()}\n\n> OpenML Assistant could not extract an editable proposal from this response. Ask the model to return the result as an \`openml-edit\` proposal with full file contents.`.trim();
+				assistantMessage.content = buildUserFacingEditSummary(editProposal);
+			} else if (requestMode === 'edit') {
+				assistantMessage.content = truncatedProposal
+					? 'No se pudo completar el trabajo porque no se recibio la respuesta completa del proveedor del modelo. La propuesta editable llego truncada antes de terminar el JSON, incluso despues de reintentar con un lote mas pequeno. Aumenta el limite de salida del proveedor o divide la solicitud en pasos mas pequenos.'
+					: (stripEditProposalBlock(rawResponse).trim() + '\n\n> OpenML Assistant could not extract an editable proposal from this response. Ask the model to return the result as an `openml-edit` proposal with full file contents.').trim();
+			} else {
+				assistantMessage.content = stripEditProposalBlock(rawResponse).trim();
 			}
 
 			this.lastAssistantResponse = assistantMessage.content.trim();
@@ -250,11 +445,22 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				assistantMessage.content = editProposal?.summary || 'The provider completed without returning visible content.';
 				this.lastAssistantResponse = assistantMessage.content;
 			}
+
+			await this.persistProjectHistory();
+			await this.writeProjectArtifacts(trimmedPrompt, assistantMessage.content, requestMode, interactionKind);
 		} catch (error) {
 			const text = error instanceof Error ? error.message : String(error);
-			assistantMessage.content = `Error: ${text}`;
-			this.lastEditProposal = undefined;
-			this.postMessage({ type: 'error', message: text });
+			if (isAbortError(error)) {
+				assistantMessage.content = 'La ejecucion fue cancelada por el usuario.';
+				this.lastEditProposal = undefined;
+				this.lastAssistantResponse = assistantMessage.content;
+				await this.persistProjectHistory();
+			} else {
+				assistantMessage.content = `Error: ${text}`;
+				this.lastEditProposal = undefined;
+				await this.persistProjectHistory();
+				this.postMessage({ type: 'error', message: text });
+			}
 		} finally {
 			this.isBusy = false;
 			await this.syncState();
@@ -271,15 +477,11 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		const testResult = await runTestsCommand(current.command, false);
 		this.messages.push({
 			role: 'assistant',
-			content: `## Fix Verification
-
-${testResult.summary}
-
-### Diagnostics
-
-${testResult.diagnostics}`
+			content: `## Fix Verification\n\n${testResult.summary}\n\n### Diagnostics\n\n${testResult.diagnostics}`
 		});
 		this.lastAssistantResponse = testResult.summary;
+		await this.persistProjectHistory();
+		await this.writeProjectArtifacts(`/fix ${current.command}`.trim(), `${testResult.summary}\n\n${testResult.diagnostics}`, 'edit', 'execution');
 		await this.syncState();
 
 		if (testResult.success) {
@@ -291,6 +493,7 @@ ${testResult.diagnostics}`
 		if (current.attempt >= maxFixAttempts) {
 			this.activeFixLoop = undefined;
 			this.messages.push({ role: 'assistant', content: `Reached the fix loop limit (${maxFixAttempts} attempts). Review the latest failures before trying again.` });
+			await this.persistProjectHistory();
 			await this.syncState();
 			return;
 		}
@@ -299,10 +502,11 @@ ${testResult.diagnostics}`
 		this.mode = 'edit';
 		await this.handlePrompt(buildFixLoopPrompt(testResult, current.attempt + 1));
 	}
+
 	private async previewEdits(): Promise<void> {
 		try {
 			if (!this.lastEditProposal) {
-				throw new Error('The last assistant response does not include an edit proposal.');
+				throw new Error('No proposed file changes available. Ask the assistant to return an openml-edit proposal with the files to create or modify.');
 			}
 			await previewEditProposal(this.lastEditProposal);
 		} catch (error) {
@@ -314,9 +518,12 @@ ${testResult.diagnostics}`
 	private async applyEdits(): Promise<void> {
 		try {
 			if (!this.lastEditProposal) {
-				throw new Error('The last assistant response does not include an edit proposal.');
+				throw new Error('No proposed file changes available. Ask the assistant to return an openml-edit proposal with the files to create or modify.');
 			}
 			await applyEditProposal(this.lastEditProposal);
+			await clearEditPreviewArtifacts();
+			this.lastEditProposal = undefined;
+			await this.syncState();
 			await this.continueFixLoop();
 		} catch (error) {
 			const text = error instanceof Error ? error.message : String(error);
@@ -327,13 +534,29 @@ ${testResult.diagnostics}`
 	private async showTests(): Promise<void> {
 		try {
 			if (!this.lastEditProposal) {
-				throw new Error('The last assistant response does not include suggested tests.');
+				throw new Error('No suggested tests are available for the last editable proposal.');
 			}
 			await showSuggestedTests(this.lastEditProposal);
 		} catch (error) {
 			const text = error instanceof Error ? error.message : String(error);
 			this.postMessage({ type: 'error', message: text });
 		}
+	}
+
+	private async clearHistory(): Promise<void> {
+		const confirmation = await vscode.window.showWarningMessage('Clear the persisted project chat history for this workspace?', { modal: true }, 'Clear History');
+		if (confirmation !== 'Clear History') {
+			return;
+		}
+
+		await clearProjectChatHistory();
+		this.historySummary = '';
+		this.messages = [{ role: 'status', content: 'Local-first ready. Use Ollama or LM Studio as your primary workflow.' }];
+		this.lastAssistantResponse = '';
+		this.lastEditProposal = undefined;
+		this.activeFixLoop = undefined;
+		await this.syncState();
+		void vscode.window.showInformationMessage('OpenML Assistant project history cleared.');
 	}
 
 	private async insertLastResponse(): Promise<void> {
@@ -674,10 +897,12 @@ ${testResult.diagnostics}`
 					<button id="applyEditsButton" class="menu-item" type="button">Apply Edits</button>
 					<button id="testsButton" class="menu-item" type="button">Suggested Tests</button>
 					<button id="keysButton" class="menu-item" type="button">Manage API Keys</button>
+					<button id="rerunButton" class="menu-item" type="button">Run Again</button>
 					<button id="refreshModelsButton" class="menu-item" type="button">Refresh Models</button>
 					<button id="settingsButton" class="menu-item" type="button">Settings</button>
 					<button id="copyButton" class="menu-item" type="button">Copy Last</button>
 					<button id="insertButton" class="menu-item" type="button">Insert Last</button>
+					<button id="clearHistoryButton" class="menu-item" type="button">Clear History</button>
 				</div>
 			</div>
 		</section>
@@ -685,8 +910,8 @@ ${testResult.diagnostics}`
 		<section id="messages" class="messages"></section>
 
 		<section class="composer">
-			<textarea id="promptInput" class="prompt-input" placeholder="Ask, edit, plan, delegate, or use /read, /search, /diff, /errors, /test, /run, /fix."></textarea>
-			<div id="hintText" class="hint">Tools: /read path, /search pattern, /diff [path], /errors, /test [command], /run command, /fix [test command]</div>
+			<textarea id="promptInput" class="prompt-input" placeholder="Ask, edit, plan, delegate, or use /context, /symbols, /memory, /rules, /read, /search, /test, /fix."></textarea>
+			<div id="hintText" class="hint">Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]</div>
 			<div class="bottom">
 				<div id="modeSelector" class="mode-selector">${modeButtonsMarkup}</div>
 				<button id="sendButton" class="send-button" type="button" aria-label="Send">
@@ -718,8 +943,10 @@ ${testResult.diagnostics}`
 		const settingsButton = document.getElementById('settingsButton');
 		const keysButton = document.getElementById('keysButton');
 		const refreshModelsButton = document.getElementById('refreshModelsButton');
+		const rerunButton = document.getElementById('rerunButton');
 		const copyButton = document.getElementById('copyButton');
 		const insertButton = document.getElementById('insertButton');
+		const clearHistoryButton = document.getElementById('clearHistoryButton');
 
 		function escapeHtml(value) {
 			return value
@@ -758,12 +985,18 @@ ${testResult.diagnostics}`
 			modelSelect.value = selectedModel || options[0] || '';
 		}
 
+		let currentBusy = false;
+
 		function setBusy(isBusy) {
-			sendButton.disabled = isBusy;
+			currentBusy = isBusy;
 			providerSelect.disabled = isBusy;
 			modelSelect.disabled = isBusy;
 			promptInput.disabled = isBusy;
-			statusText.textContent = isBusy ? 'Thinking...' : statusText.textContent;
+			sendButton.innerHTML = isBusy
+				? '<svg class="send-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ef4444"/></svg>'
+				: '<svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 20L21 12L3 4V10L15 12L3 14V20Z" fill="currentColor"/></svg>';
+			sendButton.setAttribute('aria-label', isBusy ? 'Stop' : 'Send');
+			statusText.textContent = isBusy ? 'Working...' : statusText.textContent;
 		}
 
 		function setMode(mode) {
@@ -812,6 +1045,10 @@ ${testResult.diagnostics}`
 			closeMenu();
 			vscode.postMessage({ type: 'refreshModels' });
 		});
+		rerunButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'rerunLastPrompt' });
+		});
 		copyButton.addEventListener('click', () => {
 			closeMenu();
 			vscode.postMessage({ type: 'copyLastResponse' });
@@ -820,8 +1057,18 @@ ${testResult.diagnostics}`
 			closeMenu();
 			vscode.postMessage({ type: 'insertLastResponse' });
 		});
+		clearHistoryButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'clearHistory' });
+		});
 
-		sendButton.addEventListener('click', submitPrompt);
+		sendButton.addEventListener('click', () => {
+			if (currentBusy) {
+				vscode.postMessage({ type: 'cancelRequest' });
+				return;
+			}
+			submitPrompt();
+		});
 
 		promptInput.addEventListener('keydown', event => {
 			if (event.key === 'Enter' && !event.shiftKey) {
@@ -853,7 +1100,7 @@ ${testResult.diagnostics}`
 					statusText.textContent = message.state.providerLabel + ' | ' + message.state.modelLabel + (message.state.localFirst ? ' | local' : ' | remote');
 					hintText.textContent = message.state.hasEditProposal
 						? 'Edit proposal ready. Use Preview Edits, Apply Edits, or Suggested Tests from the menu.'
-						: 'Tools: /read path, /search pattern, /diff [path], /errors, /test [command], /run command, /fix [test command]';
+						: 'Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]';
 					setMode(message.state.mode);
 					renderMessages(message.state.messages);
 					return;
@@ -878,12 +1125,6 @@ ${testResult.diagnostics}`
 </html>`;
 	}
 }
-
-
-
-
-
-
 
 
 

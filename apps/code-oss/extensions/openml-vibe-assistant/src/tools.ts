@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
+import { buildDeepContext, getRelevantWorkspaceSymbols, rebuildSemanticIndex } from './context';
+import { addWorkspaceRule, buildWorkspaceMemoryBlock, clearProjectMemoryNotes, clearWorkspaceRules, getWorkspaceRules, rememberProjectNote } from './memory';
 
 type AssistantMode = 'agent' | 'ask' | 'edit' | 'plan';
 
@@ -176,7 +178,7 @@ async function searchWorkspaceTool(pattern: string): Promise<ToolResult> {
 		throw new Error('No workspace folder is open.');
 	}
 
-	const files = await vscode.workspace.findFiles('**/*', '**/{node_modules,.git,out,.build,dist}/**', 200);
+	const files = await vscode.workspace.findFiles('**/*', '**/{node_modules,.git,out,.build,dist,coverage}/**', 200);
 	const results: string[] = [];
 	const lowerPattern = pattern.toLowerCase();
 
@@ -338,6 +340,76 @@ async function errorsTool(): Promise<ToolResult> {
 	};
 }
 
+async function memoryTool(): Promise<ToolResult> {
+	return {
+		title: 'Project memory',
+		content: buildWorkspaceMemoryBlock() || 'No project memory or workspace rules have been stored yet.'
+	};
+}
+
+async function rememberTool(note: string): Promise<ToolResult> {
+	await rememberProjectNote(note);
+	return {
+		title: 'Project memory updated',
+		content: `Saved memory note: ${note.trim()}`
+	};
+}
+
+async function rulesTool(): Promise<ToolResult> {
+	const rules = getWorkspaceRules();
+	return {
+		title: 'Workspace rules',
+		content: rules.length ? rules.map(rule => `- ${rule}`).join('\n') : 'No workspace rules stored yet.'
+	};
+}
+
+async function setRuleTool(rule: string): Promise<ToolResult> {
+	await addWorkspaceRule(rule);
+	return {
+		title: 'Workspace rule added',
+		content: `Saved rule: ${rule.trim()}`
+	};
+}
+
+async function clearMemoryTool(): Promise<ToolResult> {
+	await clearProjectMemoryNotes();
+	return {
+		title: 'Project memory cleared',
+		content: 'Stored project memory notes were removed for this workspace.'
+	};
+}
+
+async function clearRulesTool(): Promise<ToolResult> {
+	await clearWorkspaceRules();
+	return {
+		title: 'Workspace rules cleared',
+		content: 'Stored workspace rules were removed for this workspace.'
+	};
+}
+
+async function symbolsTool(query: string): Promise<ToolResult> {
+	const symbols = await getRelevantWorkspaceSymbols(query, 15);
+	return {
+		title: `Workspace symbols for \"${query}\"`,
+		content: symbols.length ? symbols.join('\n') : 'No matching workspace symbols were found.'
+	};
+}
+
+async function reindexTool(): Promise<ToolResult> {
+	const chunks = await rebuildSemanticIndex();
+	return {
+		title: 'Semantic index rebuilt',
+		content: `Indexed ${chunks} chunks from the current workspace.`
+	};
+}
+
+async function contextTool(query: string): Promise<ToolResult> {
+	return {
+		title: `Deep context for \"${query}\"`,
+		content: await buildDeepContext(query, vscode.window.activeTextEditor?.document.fileName, vscode.window.activeTextEditor?.document.getText(vscode.window.activeTextEditor.selection).trim() || undefined)
+	};
+}
+
 async function fixLoopTool(command?: string): Promise<ToolResult> {
 	const testResult = await runTestsCommand(command, true);
 	return {
@@ -396,6 +468,42 @@ export async function tryHandleToolPrompt(prompt: string): Promise<ToolResult | 
 		return fixLoopTool(trimmed.slice('/fix '.length).trim());
 	}
 
+	if (trimmed === '/memory') {
+		return memoryTool();
+	}
+
+	if (trimmed.startsWith('/remember ')) {
+		return rememberTool(trimmed.slice('/remember '.length));
+	}
+
+	if (trimmed === '/clear-memory') {
+		return clearMemoryTool();
+	}
+
+	if (trimmed === '/rules') {
+		return rulesTool();
+	}
+
+	if (trimmed.startsWith('/set-rule ')) {
+		return setRuleTool(trimmed.slice('/set-rule '.length));
+	}
+
+	if (trimmed === '/clear-rules') {
+		return clearRulesTool();
+	}
+
+	if (trimmed.startsWith('/symbols ')) {
+		return symbolsTool(trimmed.slice('/symbols '.length).trim());
+	}
+
+	if (trimmed === '/reindex') {
+		return reindexTool();
+	}
+
+	if (trimmed.startsWith('/context ')) {
+		return contextTool(trimmed.slice('/context '.length).trim());
+	}
+
 	return {
 		title: 'OpenML Assistant tools',
 		content: [
@@ -406,7 +514,17 @@ export async function tryHandleToolPrompt(prompt: string): Promise<ToolResult | 
 			'/errors',
 			'/test [command]',
 			'/run <command>',
-			'/fix [test command]'
+			'/fix [test command]',
+			'/memory',
+			'/remember <note>',
+			'/clear-memory',
+			'/rules',
+			'/set-rule <rule>',
+			'/clear-rules',
+			'/symbols <query>',
+			'/context <query>',
+			'/reindex'
 		].join('\n')
 	};
 }
+
