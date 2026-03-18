@@ -232,9 +232,9 @@ pnpm build
 
 ## Créditos
 
-Desarrollado por: **Marlon Leandro**
-Sitio web: https://mycustomdevs.com/
-Correo: marlonleandro@yahoo.com
+- Desarrollado por: **Marlon Leandro**
+- Sitio web: https://mycustomdevs.com/
+- Correo: marlonleandro@yahoo.com
 
 ## Donaciones
 
