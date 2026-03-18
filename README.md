@@ -238,5 +238,5 @@ Correo: marlonleandro@yahoo.com
 
 ## Donaciones
 
-**Yape** => Número de teléfono +51985689885
-**Zinli** => Nro. de cuenta 4-013-88068677-16
+- **Yape** => Número de teléfono +51985689885
+- **Zinli** => Nro. de cuenta 4-013-88068677-16
