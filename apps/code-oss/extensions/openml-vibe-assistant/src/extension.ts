@@ -14,15 +14,32 @@ const remoteProviders = [
 ];
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-	initializeSecretStorage(context.secrets);
+	initializeSecretStorage(context.secrets, context.globalStorageUri);
 	initializeWorkspaceMemory(context.workspaceState);
 	await migrateLegacySecrets();
 
 	const provider = new OpenMLAssistantViewProvider(context.extensionUri);
+	let autoOpenTimer: NodeJS.Timeout | undefined;
+	const scheduleAutoOpen = (delayMs = 250): void => {
+		if (autoOpenTimer) {
+			clearTimeout(autoOpenTimer);
+		}
+
+		autoOpenTimer = setTimeout(() => {
+			autoOpenTimer = undefined;
+			void provider.show();
+		}, delayMs);
+	};
 	context.subscriptions.push(
 		vscode.window.registerWebviewViewProvider(OpenMLAssistantViewProvider.viewId, provider, {
 			webviewOptions: {
 				retainContextWhenHidden: true
+			}
+		}),
+		new vscode.Disposable(() => {
+			if (autoOpenTimer) {
+				clearTimeout(autoOpenTimer);
+				autoOpenTimer = undefined;
 			}
 		}),
 		provider
@@ -124,8 +141,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 			await addWorkspaceRule(rule);
 			void vscode.window.showInformationMessage('OpenML Assistant saved the workspace rule.');
+		}),
+		vscode.workspace.onDidChangeWorkspaceFolders(() => {
+			scheduleAutoOpen(150);
 		})
 	);
+
+	scheduleAutoOpen();
 
 	void rebuildSemanticIndex().then(chunks => {
 		void provider.refresh();

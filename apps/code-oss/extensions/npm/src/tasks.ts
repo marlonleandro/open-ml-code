@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import {
-	TaskDefinition, Task, TaskGroup, WorkspaceFolder, RelativePattern, ShellExecution, Uri, workspace,
+	TaskDefinition, Task, TaskGroup, WorkspaceFolder, ShellExecution, Uri, workspace,
 	TaskProvider, TextDocument, tasks, TaskScope, QuickPickItem, window, Position, ExtensionContext, env,
-	ShellQuotedString, ShellQuoting, commands, Location, CancellationTokenSource, l10n
+	ShellQuotedString, ShellQuoting, commands, Location, CancellationTokenSource, l10n, FileType, CancellationToken
 } from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -16,6 +16,7 @@ import { findPreferredPM } from './preferred-pm';
 import { readScripts } from './readScripts';
 
 const excludeRegex = new RegExp('^(node_modules|.vscode-test)$', 'i');
+const ignoredPackageSearchFolders = new Set(['node_modules', '.vscode-test', '.git']);
 
 export interface INpmTaskDefinition extends TaskDefinition {
 	script: string;
@@ -172,8 +173,7 @@ export async function hasNpmScripts(): Promise<boolean> {
 	}
 	for (const folder of folders) {
 		if (isAutoDetectionEnabled(folder) && !excludeRegex.test(Utils.basename(folder.uri))) {
-			const relativePattern = new RelativePattern(folder, '**/package.json');
-			const paths = await workspace.findFiles(relativePattern, '**/node_modules/**');
+			const paths = await collectPackageJsonFiles(folder.uri);
 			if (paths.length > 0) {
 				return true;
 			}
@@ -192,8 +192,7 @@ async function* findNpmPackages(): AsyncGenerator<Uri> {
 	}
 	for (const folder of folders) {
 		if (isAutoDetectionEnabled(folder) && !excludeRegex.test(Utils.basename(folder.uri))) {
-			const relativePattern = new RelativePattern(folder, '**/package.json');
-			const paths = await workspace.findFiles(relativePattern, '**/{node_modules,.vscode-test}/**');
+			const paths = await collectPackageJsonFiles(folder.uri);
 			for (const path of paths) {
 				if (!isExcluded(folder, path) && !visitedPackageJsonFiles.has(path.fsPath)) {
 					yield path;
@@ -212,8 +211,7 @@ export async function detectNpmScriptsForFolder(context: ExtensionContext, folde
 	if (excludeRegex.test(Utils.basename(folder))) {
 		return folderTasks;
 	}
-	const relativePattern = new RelativePattern(folder.fsPath, '**/package.json');
-	const paths = await workspace.findFiles(relativePattern, '**/node_modules/**');
+	const paths = await collectPackageJsonFiles(folder);
 
 	const visitedPackageJsonFiles: Set<string> = new Set();
 	for (const path of paths) {
@@ -406,9 +404,54 @@ export async function hasPackageJson(): Promise<boolean> {
 	const token = new CancellationTokenSource();
 	// Search for files for max 1 second.
 	const timeout = setTimeout(() => token.cancel(), 1000);
-	const files = await workspace.findFiles('**/package.json', undefined, 1, token.token);
+	const files = await collectPackageJsonFiles(undefined, 1, token.token);
 	clearTimeout(timeout);
 	return files.length > 0;
+}
+
+async function collectPackageJsonFiles(root?: Uri, limit?: number, token?: CancellationToken): Promise<Uri[]> {
+	const results: Uri[] = [];
+	const folders = root ? [root] : (workspace.workspaceFolders?.map(folder => folder.uri) ?? []);
+
+	for (const folder of folders) {
+		if (token?.isCancellationRequested || (typeof limit === 'number' && results.length >= limit)) {
+			break;
+		}
+		await walkForPackageJson(folder, results, limit, token);
+	}
+
+	return results;
+}
+
+async function walkForPackageJson(folder: Uri, results: Uri[], limit?: number, token?: CancellationToken): Promise<void> {
+	if (token?.isCancellationRequested || (typeof limit === 'number' && results.length >= limit)) {
+		return;
+	}
+
+	let entries: [string, FileType][];
+	try {
+		entries = await workspace.fs.readDirectory(folder);
+	} catch {
+		return;
+	}
+
+	for (const [name, type] of entries) {
+		if (token?.isCancellationRequested || (typeof limit === 'number' && results.length >= limit)) {
+			return;
+		}
+
+		if ((type & FileType.Directory) !== 0) {
+			if (ignoredPackageSearchFolders.has(name)) {
+				continue;
+			}
+			await walkForPackageJson(Uri.joinPath(folder, name), results, limit, token);
+			continue;
+		}
+
+		if ((type & FileType.File) !== 0 && name === 'package.json') {
+			results.push(Uri.joinPath(folder, name));
+		}
+	}
 }
 
 async function hasRootPackageJson(): Promise<boolean> {

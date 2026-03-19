@@ -5,6 +5,12 @@ import { getProviderSecret } from './secrets';
 export type ProviderId = 'ollama' | 'lmstudio' | 'openai' | 'gemini' | 'anthropic' | 'openrouter' | 'azurefoundry';
 export type AssistantMode = 'agent' | 'ask' | 'edit' | 'plan';
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 240000;
+const DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS = 11469;
+const DEFAULT_GEMINI_MAX_OUTPUT_TOKENS = 22938;
+const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS = 11469;
+const DEFAULT_AZURE_FOUNDRY_MAX_OUTPUT_TOKENS = 11469;
+
 export interface WorkspacePrompt {
 	prompt: string;
 	workspaceName: string;
@@ -40,7 +46,7 @@ function getNumber(path: string, fallback: number): number {
 }
 
 function getTimeout(): number {
-	return getNumber('requestTimeoutMs', 120000);
+	return getNumber('requestTimeoutMs', DEFAULT_REQUEST_TIMEOUT_MS);
 }
 
 function createRequestSignal(): AbortSignal {
@@ -370,7 +376,7 @@ async function callAzureFoundry(input: WorkspacePrompt): Promise<ProviderRespons
 		model: deployment,
 		input: createUserPrompt(input),
 		instructions: input.systemPrompt,
-		max_output_tokens: getNumber('azureFoundry.maxOutputTokens', 8192),
+		max_output_tokens: getNumber('azureFoundry.maxOutputTokens', DEFAULT_AZURE_FOUNDRY_MAX_OUTPUT_TOKENS),
 		text: { format: { type: 'text' }, verbosity: 'medium' }
 	}, {
 		headers: buildAzureFoundryHeaders(apiKey, authMode)
@@ -431,7 +437,7 @@ export function providerDisplayName(provider: ProviderId): string {
 export const providerOptions: ProviderId[] = ['ollama', 'lmstudio', 'openai', 'gemini', 'anthropic', 'openrouter', 'azurefoundry'];
 export const assistantModes: AssistantMode[] = ['agent', 'ask', 'edit', 'plan'];
 
-async function streamOpenAICompatible(baseUrl: string, model: string, input: WorkspacePrompt, callbacks: StreamCallbacks, apiKey?: string, extraHeaders?: Record<string, string>, options?: { temperature?: number }): Promise<ProviderResponse> {
+async function streamOpenAICompatible(baseUrl: string, model: string, input: WorkspacePrompt, callbacks: StreamCallbacks, apiKey?: string, extraHeaders?: Record<string, string>, options?: { temperature?: number; maxTokens?: number }): Promise<ProviderResponse> {
 	const response = await postStream(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
 		model,
 		stream: true,
@@ -439,6 +445,7 @@ async function streamOpenAICompatible(baseUrl: string, model: string, input: Wor
 			{ role: 'system', content: input.systemPrompt },
 			{ role: 'user', content: createUserPrompt(input) }
 		],
+		...(typeof options?.maxTokens === 'number' ? { max_tokens: options.maxTokens } : {}),
 		...(typeof options?.temperature === 'number' ? { temperature: options.temperature } : {})
 	}, {
 		headers: buildHeaders(apiKey, extraHeaders)
@@ -465,7 +472,7 @@ async function callGemini(input: WorkspacePrompt): Promise<ProviderResponse> {
 	const json = await postJson(`${baseUrl.replace(/\/$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
 		systemInstruction: { parts: [{ text: input.systemPrompt }] },
 		contents: [{ role: 'user', parts: [{ text: createUserPrompt(input) }] }],
-		generationConfig: { temperature: 0.2, maxOutputTokens: getNumber('gemini.maxOutputTokens', 16384) }
+		generationConfig: { temperature: 0.2, maxOutputTokens: getNumber('gemini.maxOutputTokens', DEFAULT_GEMINI_MAX_OUTPUT_TOKENS) }
 	}, {
 		headers: { 'Content-Type': 'application/json' }
 	});
@@ -567,7 +574,10 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 					{ role: 'system', content: enrichedInput.systemPrompt },
 					{ role: 'user', content: createUserPrompt(enrichedInput) }
 				],
-				options: { temperature: 0.2 }
+				options: {
+					temperature: 0.2,
+					num_predict: getNumber('ollama.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+				}
 			});
 			const text = await readNdjsonStream(response, json => {
 				const delta = json?.message?.content;
@@ -584,13 +594,18 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 		case 'lmstudio': {
 			const baseUrl = requireValue(getString('lmStudio.baseUrl', 'http://127.0.0.1:1234/v1'), 'openmlAssistant.lmStudio.baseUrl');
 			const model = requireValue(getString('lmStudio.model', 'local-model'), 'openmlAssistant.lmStudio.model');
-			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, undefined, undefined, { temperature: 0.2 });
+			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, undefined, undefined, {
+				temperature: 0.2,
+				maxTokens: getNumber('lmStudio.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+			});
 		}
 		case 'openai': {
 			const baseUrl = requireValue(getString('openai.baseUrl', 'https://api.openai.com/v1'), 'openmlAssistant.openai.baseUrl');
 			const apiKey = requireValue(await getProviderSecret('openai'), 'OpenAI API key');
 			const model = normalizeOpenAIModel(requireValue(getString('openai.model'), 'openmlAssistant.openai.model'));
-			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey);
+			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey, undefined, {
+				maxTokens: getNumber('openai.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+			});
 		}
 		case 'gemini': {
 			const result = await callGemini(enrichedInput);
@@ -610,7 +625,7 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 			};
 			const body = {
 				model,
-				max_tokens: getNumber('anthropic.maxOutputTokens', 8192),
+				max_tokens: getNumber('anthropic.maxOutputTokens', DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS),
 				stream: true,
 				system: enrichedInput.systemPrompt,
 				messages: [{ role: 'user', content: [{ type: 'text', text: createUserPrompt(enrichedInput) }] }]
@@ -652,7 +667,10 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 				'HTTP-Referer': getString('openRouter.siteUrl', 'https://openml-code.local'),
 				'X-Title': getString('openRouter.appName', 'OpenML Code')
 			};
-			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey, extraHeaders, { temperature: 0.2 });
+			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey, extraHeaders, {
+				temperature: 0.2,
+				maxTokens: getNumber('openRouter.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+			});
 		}
 		case 'azurefoundry': {
 			const result = await callAzureFoundry(enrichedInput);

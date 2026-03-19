@@ -97,14 +97,14 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 	async resolveWebviewView(webviewView: vscode.WebviewView): Promise<void> {
 		this.webviewView = webviewView;
 		const markdownItUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', '..', 'node_modules', 'markdown-it', 'dist', 'markdown-it.min.js'));
-		const highlightJsUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'node_modules', 'highlight.js', 'es', 'common.js'));
+		const highlightJsUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'node_modules', 'highlight.js', 'es', 'index.js'));
 		const highlightCssUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'media', 'highlight.css'));
 		webviewView.webview.options = {
 			enableScripts: true,
 			localResourceRoots: [
 				this.extensionUri,
 				vscode.Uri.joinPath(this.extensionUri, '..', '..', 'node_modules', 'markdown-it', 'dist'),
-				vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'node_modules', 'highlight.js', 'es'),
+				vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'node_modules', 'highlight.js'),
 				vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'media')
 			]
 		};
@@ -849,7 +849,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			font-size: 12px;
 			line-height: 1.6;
 		}
-		.rendered pre code.hljs { background: transparent; }
+		.rendered pre code.hljs { background: transparent; display: block; color: inherit; }
 		.rendered blockquote {
 			margin-left: 0;
 			padding-left: 10px;
@@ -859,7 +859,8 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		.rendered table {
 			width: 100%;
 			border-collapse: collapse;
-			font-size: 0.94rem;
+			font-size: 0.82rem;
+			line-height: 1.35;
 		}
 		.rendered th, .rendered td {
 			border: 1px solid var(--border);
@@ -1017,13 +1018,17 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 					return 'python';
 				case 'tsx':
 				case 'typescriptreact':
-					return 'jsx';
+					return 'tsx';
+				case 'ts':
+					return 'typescript';
+				case 'js':
+					return 'javascript';
 				case 'json5':
 				case 'jsonc':
 					return 'json';
 				case 'c#':
 				case 'csharp':
-					return 'cs';
+					return 'csharp';
 				default:
 					return lang || '';
 			}

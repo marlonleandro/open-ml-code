@@ -44,9 +44,10 @@
   "main": "./out/npmMain",
   "browser": "./dist/browser/npmBrowserMain",
   "activationEvents": [
+    "onStartupFinished",
     "onTaskType:npm",
     "onLanguage:json",
-    "workspaceContains:package.json"
+    "onCommand:npm.refresh"
   ],
   "capabilities": {
     "virtualWorkspaces": {
