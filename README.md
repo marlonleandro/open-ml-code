@@ -13,6 +13,7 @@
 - chat propio `OpenML Assistant` en la barra lateral derecha
 - modos `agent`, `ask`, `edit`, `plan`
 - `streaming` de respuestas
+- resaltado de sintaxis en snippets del chat con accion `Copy`
 - `SecretStorage` para API keys remotas
 - autodeteccion de modelos locales en `Ollama` y `LM Studio`
 - herramientas de lectura, busqueda, ejecucion y fix loop
@@ -203,6 +204,7 @@ pnpm run release:observability
 
 - branding tecnico principal aplicado
 - `OpenML Assistant` builtin integrado
+- snippets del chat con resaltado de sintaxis y `Copy code`
 - edicion asistida funcional
 - herramientas profundas funcionales
 - fix loop automatico de primera iteracion

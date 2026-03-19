@@ -99,7 +99,7 @@ Estado: completada en su primera base operativa, con Windows validado
 
 Entregable: experiencia visual mas profesional y comparable a IDEs AI maduros.
 
-Estado: siguiente fase recomendada
+Estado: iniciada; primer avance aplicado en resaltado de snippets y `Copy code`
 
 ## Fase 8. Robustez del agente
 

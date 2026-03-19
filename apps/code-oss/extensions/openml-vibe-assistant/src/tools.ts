@@ -8,6 +8,7 @@ type AssistantMode = 'agent' | 'ask' | 'edit' | 'plan';
 const MAX_TOOL_OUTPUT = 16000;
 const outputChannel = vscode.window.createOutputChannel('OpenML Assistant Tools');
 const MAX_FIX_ATTEMPTS = 3;
+const EXCLUDED_DIRS = new Set(['node_modules', '.git', 'out', '.build', 'dist', 'coverage']);
 
 export type ToolResult = {
 	title: string;
@@ -69,6 +70,47 @@ function resolveWorkspacePath(inputPath: string): vscode.Uri {
 async function readFileText(uri: vscode.Uri): Promise<string> {
 	const bytes = await vscode.workspace.fs.readFile(uri);
 	return new TextDecoder('utf-8').decode(bytes);
+}
+
+async function collectWorkspaceFiles(limit: number): Promise<vscode.Uri[]> {
+	const workspaceFolder = getWorkspaceFolder();
+	if (!workspaceFolder) {
+		return [];
+	}
+
+	const files: vscode.Uri[] = [];
+	const visit = async (directory: vscode.Uri): Promise<void> => {
+		if (files.length >= limit) {
+			return;
+		}
+
+		let entries: [string, vscode.FileType][];
+		try {
+			entries = await vscode.workspace.fs.readDirectory(directory);
+		} catch {
+			return;
+		}
+
+		for (const [name, type] of entries) {
+			if (files.length >= limit) {
+				return;
+			}
+
+			if (type === vscode.FileType.Directory) {
+				if (!EXCLUDED_DIRS.has(name)) {
+					await visit(vscode.Uri.joinPath(directory, name));
+				}
+				continue;
+			}
+
+			if (type === vscode.FileType.File) {
+				files.push(vscode.Uri.joinPath(directory, name));
+			}
+		}
+	};
+
+	await visit(workspaceFolder.uri);
+	return files;
 }
 
 function appendOutput(title: string, body: string): void {
@@ -178,7 +220,7 @@ async function searchWorkspaceTool(pattern: string): Promise<ToolResult> {
 		throw new Error('No workspace folder is open.');
 	}
 
-	const files = await vscode.workspace.findFiles('**/*', '**/{node_modules,.git,out,.build,dist,coverage}/**', 200);
+	const files = await collectWorkspaceFiles(200);
 	const results: string[] = [];
 	const lowerPattern = pattern.toLowerCase();
 
@@ -268,7 +310,8 @@ async function detectTestCommand(): Promise<string | undefined> {
 
 	for (const candidate of candidates) {
 		if (candidate.file.startsWith('*.')) {
-			const matches = await vscode.workspace.findFiles(candidate.file, '**/{node_modules,.git,out,.build,dist}/**', 1);
+			const suffix = candidate.file.slice(1).toLowerCase();
+			const matches = (await collectWorkspaceFiles(250)).filter(file => file.fsPath.toLowerCase().endsWith(suffix));
 			if (matches.length) {
 				return candidate.command;
 			}

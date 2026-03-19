@@ -239,6 +239,10 @@
 			return; // disabled in certain development setups
 		}
 
+		if (document.head.querySelector('script[data-vscode-css-importmap="true"]')) {
+			return; // import map was already installed by the HTML bootstrap
+		}
+
 		if (Array.isArray(configuration.cssModules) && configuration.cssModules.length > 0) {
 			performance.mark('code/willAddCssLoader');
 
@@ -251,12 +255,26 @@
 				window.document.head.appendChild(link);
 			};
 
+			const withNormalizedWindowsDrive = (url: string): string[] => {
+				const match = /^([a-z]+:\/\/[^/]+\/)([A-Z]):(\/.*)$/i.exec(url);
+				if (!match) {
+					return [url];
+				}
+
+				const [, prefix, drive, suffix] = match;
+				const lowerCased = `${prefix}${drive.toLowerCase()}:${suffix}`;
+				return lowerCased === url ? [url] : [url, lowerCased];
+			};
+
 			const importMap: { imports: Record<string, string> } = { imports: {} };
 			for (const cssModule of configuration.cssModules) {
 				const cssUrl = new URL(cssModule, baseUrl).href;
 				const jsSrc = `globalThis._VSCODE_CSS_LOAD('${cssUrl}');\n`;
 				const blob = new Blob([jsSrc], { type: 'application/javascript' });
-				importMap.imports[cssUrl] = URL.createObjectURL(blob);
+				const blobUrl = URL.createObjectURL(blob);
+				for (const normalizedCssUrl of withNormalizedWindowsDrive(cssUrl)) {
+					importMap.imports[normalizedCssUrl] = blobUrl;
+				}
 			}
 
 			const ttp = window.trustedTypes?.createPolicy('vscode-bootstrapImportMap', { createScript(value) { return value; }, });

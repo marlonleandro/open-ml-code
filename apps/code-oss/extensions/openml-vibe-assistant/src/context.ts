@@ -13,7 +13,7 @@ const MAX_INDEXED_FILES = 150;
 const MAX_CONTEXT_CHUNKS = 6;
 const CHUNK_SIZE = 1200;
 const CHUNK_OVERLAP = 200;
-const EXCLUDE_GLOB = '**/{node_modules,.git,out,.build,dist,coverage}/**';
+const EXCLUDED_DIRS = new Set(['node_modules', '.git', 'out', '.build', 'dist', 'coverage']);
 
 let lastIndexedAt = 0;
 let indexedChunks: IndexChunk[] = [];
@@ -44,6 +44,47 @@ async function readFileText(uri: vscode.Uri): Promise<string> {
 	return new TextDecoder('utf-8').decode(bytes);
 }
 
+async function collectWorkspaceFiles(limit: number): Promise<vscode.Uri[]> {
+	const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+	if (!workspaceFolder) {
+		return [];
+	}
+
+	const files: vscode.Uri[] = [];
+	const visit = async (directory: vscode.Uri): Promise<void> => {
+		if (files.length >= limit) {
+			return;
+		}
+
+		let entries: [string, vscode.FileType][];
+		try {
+			entries = await vscode.workspace.fs.readDirectory(directory);
+		} catch {
+			return;
+		}
+
+		for (const [name, type] of entries) {
+			if (files.length >= limit) {
+				return;
+			}
+
+			if (type === vscode.FileType.Directory) {
+				if (!EXCLUDED_DIRS.has(name)) {
+					await visit(vscode.Uri.joinPath(directory, name));
+				}
+				continue;
+			}
+
+			if (type === vscode.FileType.File) {
+				files.push(vscode.Uri.joinPath(directory, name));
+			}
+		}
+	};
+
+	await visit(workspaceFolder.uri);
+	return files;
+}
+
 function scoreChunk(chunk: IndexChunk, queryTokens: string[], activeFileName?: string): number {
 	let score = 0;
 	for (const token of queryTokens) {
@@ -63,7 +104,7 @@ function scoreChunk(chunk: IndexChunk, queryTokens: string[], activeFileName?: s
 }
 
 export async function rebuildSemanticIndex(): Promise<number> {
-	const files = await vscode.workspace.findFiles('**/*', EXCLUDE_GLOB, MAX_INDEXED_FILES);
+	const files = await collectWorkspaceFiles(MAX_INDEXED_FILES);
 	const nextChunks: IndexChunk[] = [];
 
 	for (const file of files) {
@@ -103,14 +144,33 @@ async function ensureSemanticIndex(): Promise<void> {
 export async function getRelevantWorkspaceSymbols(query: string, limit = 12): Promise<string[]> {
 	const queryTokens = tokenize(query).slice(0, 4);
 	const collected = new Map<string, string>();
+	const candidateUris = new Map<string, vscode.Uri>();
 
-	for (const token of queryTokens.length ? queryTokens : [query]) {
+	for (const editor of vscode.window.visibleTextEditors) {
+		candidateUris.set(editor.document.uri.toString(), editor.document.uri);
+	}
+
+	for (const document of vscode.workspace.textDocuments) {
+		if (!document.isUntitled) {
+			candidateUris.set(document.uri.toString(), document.uri);
+		}
+	}
+
+	for (const uri of candidateUris.values()) {
 		try {
-			const symbols = await vscode.commands.executeCommand<vscode.SymbolInformation[]>('vscode.executeWorkspaceSymbolProvider', token);
+			const symbols = await vscode.commands.executeCommand<(vscode.DocumentSymbol | vscode.SymbolInformation)[]>('vscode.executeDocumentSymbolProvider', uri);
 			for (const symbol of symbols ?? []) {
-				const key = `${symbol.location.uri.fsPath}:${symbol.location.range.start.line + 1}:${symbol.name}`;
+				const name = symbol.name;
+				const line = 'selectionRange' in symbol ? symbol.selectionRange.start.line + 1 : symbol.location.range.start.line + 1;
+				const kind = vscode.SymbolKind[symbol.kind];
+				const haystack = `${uri.fsPath}\n${name}`.toLowerCase();
+				if (queryTokens.length && !queryTokens.some(token => haystack.includes(token))) {
+					continue;
+				}
+
+				const key = `${uri.fsPath}:${line}:${name}`;
 				if (!collected.has(key)) {
-					collected.set(key, `${symbol.name} (${vscode.SymbolKind[symbol.kind]}) - ${symbol.location.uri.fsPath}:${symbol.location.range.start.line + 1}`);
+					collected.set(key, `${name} (${kind}) - ${uri.fsPath}:${line}`);
 				}
 				if (collected.size >= limit) {
 					return [...collected.values()];

@@ -177,6 +177,7 @@
     "debounce": "^1.0.0",
     "deemon": "^1.13.6",
     "electron": "39.8.1",
+    "esbuild": "^0.25.12",
     "eslint": "^9.36.0",
     "eslint-formatter-compact": "^8.40.0",
     "eslint-plugin-header": "3.1.1",
@@ -193,9 +194,11 @@
     "gulp-gunzip": "^1.0.0",
     "gulp-gzip": "^1.4.2",
     "gulp-json-editor": "^2.5.0",
+    "gulp-merge-json": "^2.1.2",
     "gulp-plumber": "^1.2.0",
     "gulp-rename": "^1.2.0",
     "gulp-replace": "^0.5.4",
+    "gulp-sort": "^2.0.0",
     "gulp-sourcemaps": "^3.0.0",
     "gulp-svgmin": "^4.1.0",
     "husky": "^0.13.1",
@@ -205,6 +208,7 @@
     "istanbul-lib-report": "^3.0.0",
     "istanbul-lib-source-maps": "^4.0.1",
     "istanbul-reports": "^3.1.5",
+    "jsonc-parser": "^3.3.1",
     "lazy.js": "^0.4.2",
     "merge-options": "^1.0.1",
     "mime": "^1.4.1",
@@ -224,11 +228,16 @@
     "source-map": "0.6.1",
     "source-map-support": "^0.3.2",
     "tar": "^7.5.9",
+    "ternary-stream": "^3.0.0",
+    "through": "^2.3.8",
+    "through2": "^4.0.2",
     "tsec": "0.2.7",
     "tslib": "^2.6.3",
     "typescript": "^6.0.0-dev.20260306",
     "typescript-eslint": "^8.45.0",
     "util": "^0.12.4",
+    "vinyl-fs": "^3.0.3",
+    "workerpool": "^9.3.4",
     "xml2js": "^0.5.0",
     "yaserver": "^0.4.0"
   },
@@ -250,6 +259,3 @@
     "windows-foreground-love": "0.6.1"
   }
 }
-
-
-

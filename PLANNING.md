@@ -115,6 +115,8 @@ CustomIDE/
 - listado remoto de modelos para `Anthropic` y `OpenAI`
 - selector de proveedor y modelo desde la UI
 - renderizado Markdown real en respuestas
+- resaltado de sintaxis en bloques de codigo del chat
+- accion `Copy` por snippet dentro del chat
 - envio con `Enter` y salto de linea con `Shift+Enter`
 - opcion `Run Again` para relanzar el ultimo prompt con el modelo actual
 - boton `Send` que cambia a `Stop` durante la ejecucion y permite cancelar la solicitud activa
@@ -175,7 +177,7 @@ CustomIDE/
 ## 7. Limitaciones actuales
 
 - el modelo no siempre devuelve un bloque `openml-edit`; cuando eso pasa no se puede aplicar la respuesta como cambio estructurado
-- el resaltado de sintaxis de snippets en el chat todavia es basico
+- el resaltado de sintaxis del chat ya mejoro, pero todavia falta mas pulido visual para respuestas largas, snippets complejos y acciones adicionales sobre codigo
 - el parsing de errores de tests todavia es generico; no prioriza los fallos mas relevantes
 - el indexado semantico actual es ligero y local; aun no usa embeddings ni vector DB
 - el auto-update sigue configurado a nivel de producto, pero el backend real aun no esta desplegado

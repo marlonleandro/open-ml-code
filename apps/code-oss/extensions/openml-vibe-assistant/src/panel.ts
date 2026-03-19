@@ -97,14 +97,18 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 	async resolveWebviewView(webviewView: vscode.WebviewView): Promise<void> {
 		this.webviewView = webviewView;
 		const markdownItUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', '..', 'node_modules', 'markdown-it', 'dist', 'markdown-it.min.js'));
+		const highlightJsUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'node_modules', 'highlight.js', 'es', 'common.js'));
+		const highlightCssUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'media', 'highlight.css'));
 		webviewView.webview.options = {
 			enableScripts: true,
 			localResourceRoots: [
 				this.extensionUri,
-				vscode.Uri.joinPath(this.extensionUri, '..', '..', 'node_modules', 'markdown-it', 'dist')
+				vscode.Uri.joinPath(this.extensionUri, '..', '..', 'node_modules', 'markdown-it', 'dist'),
+				vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'node_modules', 'highlight.js', 'es'),
+				vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'media')
 			]
 		};
-		webviewView.webview.html = this.getHtml(markdownItUri);
+		webviewView.webview.html = this.getHtml(markdownItUri, highlightJsUri, highlightCssUri);
 
 		webviewView.webview.onDidReceiveMessage(message => {
 			void this.onMessage(message as WebviewInboundMessage);
@@ -612,7 +616,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		void this.webviewView.webview.postMessage(message);
 	}
 
-	private getHtml(markdownItUri: vscode.Uri): string {
+	private getHtml(markdownItUri: vscode.Uri, highlightJsUri: vscode.Uri, highlightCssUri: vscode.Uri): string {
 		const providerOptionsMarkup = providerOptions.map(provider => `<option value="${provider}">${providerDisplayName(provider)}</option>`).join('');
 		const modeButtonsMarkup = assistantModes.map(mode => `<button type="button" class="mode-button" data-mode="${mode}">${mode}</button>`).join('');
 
@@ -622,6 +626,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>OpenML Assistant</title>
+	<link rel="stylesheet" href="${highlightCssUri}" />
 	<style>
 		:root {
 			color-scheme: dark;
@@ -633,7 +638,11 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			--muted: #9fb3c3;
 			--accent: #d7ebfa;
 			--accent-soft: rgba(215, 235, 250, 0.10);
-			--code-bg: rgba(3, 16, 28, 0.72);
+			--code-bg: rgba(3, 16, 28, 0.78);
+			--code-border: rgba(146, 193, 224, 0.16);
+			--code-header: rgba(10, 30, 50, 0.94);
+			--code-inline-bg: rgba(215, 235, 250, 0.08);
+			--code-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
 		}
 
 		* { box-sizing: border-box; }
@@ -779,24 +788,68 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		.rendered em { font-style: italic; }
 		.rendered code {
 			font-family: var(--vscode-editor-font-family, Consolas, monospace);
-			background: rgba(215, 235, 250, 0.08);
+			background: var(--code-inline-bg);
 			padding: 1px 5px;
 			border-radius: 6px;
 		}
+		.rendered .code-block {
+			margin: 0 0 12px;
+			border: 1px solid var(--code-border);
+			border-radius: 12px;
+			background: linear-gradient(180deg, rgba(12, 34, 55, 0.98), rgba(4, 17, 29, 0.98));
+			box-shadow: var(--code-shadow);
+			overflow: hidden;
+		}
+		.rendered .code-block-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+			padding: 8px 10px;
+			background: linear-gradient(180deg, rgba(18, 43, 67, 0.96), var(--code-header));
+			border-bottom: 1px solid rgba(146, 193, 224, 0.10);
+		}
+		.rendered .code-block-language {
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: #b9d7ea;
+		}
+		.rendered .code-copy-button {
+			border: 1px solid rgba(185, 215, 234, 0.14);
+			border-radius: 999px;
+			padding: 4px 9px;
+			background: rgba(215, 235, 250, 0.06);
+			color: var(--text);
+			font: inherit;
+			font-size: 11px;
+			cursor: pointer;
+		}
+		.rendered .code-copy-button:hover {
+			background: rgba(215, 235, 250, 0.12);
+		}
+		.rendered .code-copy-button.copied {
+			color: #b8f7d4;
+			border-color: rgba(184, 247, 212, 0.28);
+		}
 		.rendered pre {
+			margin: 0;
 			background: var(--code-bg);
-			border: 1px solid var(--border);
-			border-radius: 8px;
 			overflow: auto;
 			padding: 0;
 		}
 		.rendered pre code {
 			display: block;
 			background: transparent;
-			padding: 12px;
+			padding: 14px 16px;
 			border-radius: 0;
 			white-space: pre;
+			tab-size: 2;
+			font-size: 12px;
+			line-height: 1.6;
 		}
+		.rendered pre code.hljs { background: transparent; }
 		.rendered blockquote {
 			margin-left: 0;
 			padding-left: 10px;
@@ -924,9 +977,17 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 	</div>
 
 	<script src="${markdownItUri}"></script>
-	<script>
+	<script type="module">
+		(async () => {
 		const vscode = acquireVsCodeApi();
-		const md = window.markdownit({ html: false, linkify: true, breaks: true });
+		let hljs = undefined;
+		try {
+			const highlightModule = await import("${highlightJsUri}");
+			hljs = highlightModule.default;
+		} catch (error) {
+			console.warn('OpenML Assistant could not load highlight.js. Falling back to plain code blocks.', error);
+		}
+
 		const messages = document.getElementById('messages');
 		const providerSelect = document.getElementById('providerSelect');
 		const modelSelect = document.getElementById('modelSelect');
@@ -948,6 +1009,26 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		const insertButton = document.getElementById('insertButton');
 		const clearHistoryButton = document.getElementById('clearHistoryButton');
 
+		function normalizeHighlightLang(lang) {
+			switch ((lang || '').toLowerCase()) {
+				case 'shell':
+					return 'sh';
+				case 'py3':
+					return 'python';
+				case 'tsx':
+				case 'typescriptreact':
+					return 'jsx';
+				case 'json5':
+				case 'jsonc':
+					return 'json';
+				case 'c#':
+				case 'csharp':
+					return 'cs';
+				default:
+					return lang || '';
+			}
+		}
+
 		function escapeHtml(value) {
 			return value
 				.replaceAll('&', '&amp;')
@@ -955,6 +1036,82 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				.replaceAll('>', '&gt;')
 				.replaceAll('"', '&quot;');
 		}
+
+		function escapeAttribute(value) {
+			return escapeHtml(value).replaceAll("'", '&#39;');
+		}
+
+		function createMarkdownRenderer() {
+			const markdown = window.markdownit({
+				html: false,
+				linkify: true,
+				breaks: true,
+				highlight(value, lang) {
+					const normalizedLang = normalizeHighlightLang(lang);
+					if (hljs) {
+						try {
+							if (normalizedLang && hljs.getLanguage(normalizedLang)) {
+								return hljs.highlight(value, {
+									language: normalizedLang,
+									ignoreIllegals: true
+								}).value;
+							}
+							return hljs.highlightAuto(value).value;
+						} catch {
+							// Fall through to escaped plain text.
+						}
+					}
+					return markdown.utils.escapeHtml(value);
+				}
+			});
+
+			const defaultFenceRenderer = markdown.renderer.rules.fence ?? ((tokens, index, options, _env, self) => self.renderToken(tokens, index, options));
+			markdown.renderer.rules.fence = (tokens, index, options, env, self) => {
+				const token = tokens[index];
+				const info = markdown.utils.unescapeAll(token.info || '').trim();
+				const langName = info.split(/\\s+/g)[0] || '';
+				const normalizedLang = normalizeHighlightLang(langName);
+				let codeHtml = '';
+				let codeClass = normalizedLang ? 'hljs language-' + normalizedLang : 'hljs';
+
+				if (hljs) {
+					try {
+						if (normalizedLang && hljs.getLanguage(normalizedLang)) {
+							codeHtml = hljs.highlight(token.content, {
+								language: normalizedLang,
+								ignoreIllegals: true
+							}).value;
+						} else {
+							codeHtml = hljs.highlightAuto(token.content).value;
+						}
+					} catch {
+						codeHtml = markdown.utils.escapeHtml(token.content);
+						codeClass = normalizedLang ? 'language-' + normalizedLang : '';
+					}
+				} else {
+					codeHtml = markdown.utils.escapeHtml(token.content);
+					codeClass = normalizedLang ? 'language-' + normalizedLang : '';
+				}
+
+				const languageLabel = langName || 'Code';
+				const renderedPre = '<pre><code class="' + escapeAttribute(codeClass) + '">' + codeHtml + '</code></pre>';
+				if (!token.content.trim()) {
+					return defaultFenceRenderer(tokens, index, options, env, self);
+				}
+
+				return '<div class="code-block">' +
+					'<div class="code-block-header">' +
+					'<span class="code-block-language">' + escapeHtml(languageLabel) + '</span>' +
+					'<button type="button" class="code-copy-button" data-copy-code>Copy</button>' +
+					'</div>' +
+					renderedPre +
+					'</div>';
+			};
+
+			return markdown;
+		}
+
+		const md = createMarkdownRenderer();
 
 		function closeMenu() {
 			contextMenu.classList.add('hidden');
@@ -1021,6 +1178,36 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 
 		document.addEventListener('click', closeMenu);
 		contextMenu.addEventListener('click', event => event.stopPropagation());
+		messages.addEventListener('click', async event => {
+			const target = event.target;
+			if (!(target instanceof HTMLElement)) {
+				return;
+			}
+
+			const copyButton = target.closest('[data-copy-code]');
+			if (!(copyButton instanceof HTMLButtonElement)) {
+				return;
+			}
+
+			const block = copyButton.closest('.code-block');
+			const codeElement = block ? block.querySelector('pre code') : null;
+			const code = codeElement ? codeElement.textContent || '' : '';
+			if (!code) {
+				return;
+			}
+
+			try {
+				await navigator.clipboard.writeText(code);
+				copyButton.textContent = 'Copied';
+				copyButton.classList.add('copied');
+				window.setTimeout(() => {
+					copyButton.textContent = 'Copy';
+					copyButton.classList.remove('copied');
+				}, 1400);
+			} catch (error) {
+				console.warn('OpenML Assistant could not copy the code block.', error);
+			}
+		});
 		previewEditsButton.addEventListener('click', () => {
 			closeMenu();
 			vscode.postMessage({ type: 'previewEdits' });
@@ -1120,6 +1307,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		});
 
 		vscode.postMessage({ type: 'ready' });
+		})();
 	</script>
 </body>
 </html>`;
