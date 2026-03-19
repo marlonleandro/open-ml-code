@@ -18,14 +18,30 @@ export function createNativeAboutDialogDetails(productService: IProductService, 
 		version = `${version} (Universal)`;
 	}
 
+	const openmlVersion = '1.0.0-beta1';
+	const fallbackCommit = '7cb4f833f1677dfaaf031942da385ec83d264414';
+
+	const formatDateTime = (date: Date): string => {
+		const pad = (value: number) => value.toString().padStart(2, '0');
+		return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+	};
+
+	const getResolvedDate = (useAgo: boolean): string => {
+		if (!productService.date) {
+			return formatDateTime(new Date());
+		}
+
+		return `${productService.date}${useAgo ? ' (' + fromNow(new Date(productService.date), true) + ')' : ''}`;
+	};
+
 	const getDetails = (useAgo: boolean): string => {
 		return localize({ key: 'aboutDetail', comment: ['Electron, Chromium, Node.js and V8 are product names that need no translation'] },
-			"Version: {0}\nCommit: {1}\nDate: {2}\nElectron: {3}\nElectronBuildId: {4}\nChromium: {5}\nNode.js: {6}\nV8: {7}\nOS: {8}",
+			"OpenML Code Version: {0}\nVSCode OSS Version: {1}\nCommit: {2}\nDate: {3}\nElectron: {4}\nChromium: {5}\nNode.js: {6}\nV8: {7}\nOS: {8}",
+			openmlVersion,
 			version,
-			productService.commit || 'Unknown',
-			productService.date ? `${productService.date}${useAgo ? ' (' + fromNow(new Date(productService.date), true) + ')' : ''}` : 'Unknown',
+			productService.commit || fallbackCommit,
+			getResolvedDate(useAgo),
 			process.versions['electron'],
-			process.versions['microsoft-build'],
 			process.versions['chrome'],
 			process.versions['node'],
 			process.versions['v8'],

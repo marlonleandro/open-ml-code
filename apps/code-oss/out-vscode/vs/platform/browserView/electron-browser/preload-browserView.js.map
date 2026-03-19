@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": ["../../../../../src/vs/platform/browserView/electron-browser/preload-browserView.ts"],
+  "mappings": ";;;;CAiBC,WAAY;AAEZ,QAAM,EAAE,cAAc,IAAI,QAAQ,UAAU;AAS5C,QAAM,UAAU;AAAA;AAAA;AAAA;AAAA,IAIf,kBAA0B;AACzB,UAAI;AAIH,eAAO,OAAO,aAAa,GAAG,SAAS,KAAK;AAAA,MAC7C,QAAQ;AACP,eAAO;AAAA,MACR;AAAA,IACD;AAAA,EACD;AAEA,MAAI;AAIH,kBAAc,sBAAsB,KAAK,kBAAkB,OAAO;AAAA,EACnE,SAAS,OAAO;AACf,YAAQ,MAAM,KAAK;AAAA,EACpB;AACD,GAAE;",
+  "names": []
+}

@@ -9,6 +9,7 @@ import { isMacintosh, isLinux, language, isWeb } from '../../../base/common/plat
 import { ITelemetryService } from '../../../platform/telemetry/common/telemetry.js';
 import { IOpenerService } from '../../../platform/opener/common/opener.js';
 import { URI } from '../../../base/common/uri.js';
+import { FileAccess } from '../../../base/common/network.js';
 import { MenuId, Action2, registerAction2, MenuRegistry } from '../../../platform/actions/common/actions.js';
 import { KeyChord, KeyMod, KeyCode } from '../../../base/common/keyCodes.js';
 import { IProductService } from '../../../platform/product/common/productService.js';
@@ -264,8 +265,14 @@ class OpenLicenseUrlAction extends Action2 {
 	run(accessor: ServicesAccessor): void {
 		const productService = accessor.get(IProductService);
 		const openerService = accessor.get(IOpenerService);
-		const url = isWeb ? productService.serverLicenseUrl : productService.licenseUrl;
 
+		if (!isWeb) {
+			const licenseFile = URI.joinPath(FileAccess.asFileUri(''), '..', 'LICENSE.txt');
+			openerService.open(licenseFile);
+			return;
+		}
+
+		const url = isWeb ? productService.serverLicenseUrl : productService.licenseUrl;
 		if (url) {
 			if (language) {
 				const queryArgChar = url.indexOf('?') > 0 ? '&' : '?';

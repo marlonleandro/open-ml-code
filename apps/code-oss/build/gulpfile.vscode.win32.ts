@@ -67,6 +67,8 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 	return (cb) => {
 		const x64AppId = target === 'system' ? product.win32x64AppId : product.win32x64UserAppId;
 		const arm64AppId = target === 'system' ? product.win32arm64AppId : product.win32arm64UserAppId;
+		const executableName = (product as typeof product & { win32ExecutableName?: string }).win32ExecutableName || product.nameShort;
+		const setupExeName = (product as typeof product & { win32SetupExeName?: string }).win32SetupExeName || 'VSCodeSetup';
 
 		const sourcePath = buildPath(arch);
 		const outputPath = setupDir(arch, target);
@@ -90,7 +92,8 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 			RawVersion: pkg.version.replace(/-\w+$/, ''),
 			Commit: commit,
 			NameVersion: product.win32NameVersion + (target === 'user' ? ' (User)' : ''),
-			ExeBasename: product.nameShort,
+			ExeBasename: executableName,
+			SetupBaseFilename: setupExeName,
 			RegValueName: product.win32RegValueName,
 			ShellNameShort: product.win32ShellNameShort,
 			AppMutex: product.win32MutexName,
@@ -125,9 +128,16 @@ function buildWin32Setup(arch: string, target: string): task.CallbackTask {
 		}
 
 		if (quality === 'stable' || quality === 'insider') {
-			definitions['AppxPackage'] = `${quality === 'stable' ? 'code' : 'code_insider'}_${arch}.appx`;
-			definitions['AppxPackageDll'] = `${quality === 'stable' ? 'code' : 'code_insider'}_explorer_command_${arch}.dll`;
-			definitions['AppxPackageName'] = `${product.win32AppUserModelId}`;
+			const appxPackage = `${quality === 'stable' ? 'code' : 'code_insider'}_${arch}.appx`;
+			const appxPackageDll = `${quality === 'stable' ? 'code' : 'code_insider'}_explorer_command_${arch}.dll`;
+			const appxPackagePath = path.join(sourcePath, 'appx', appxPackage);
+			const appxPackageDllPath = path.join(sourcePath, 'appx', appxPackageDll);
+
+			if (fs.existsSync(appxPackagePath) && fs.existsSync(appxPackageDllPath)) {
+				definitions['AppxPackage'] = appxPackage;
+				definitions['AppxPackageDll'] = appxPackageDll;
+				definitions['AppxPackageName'] = `${product.win32AppUserModelId}`;
+			}
 		}
 
 		packageInnoSetup(issPath, { definitions }, cb as (err?: Error | null) => void);

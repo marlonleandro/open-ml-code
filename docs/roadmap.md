@@ -1,4 +1,4 @@
-ï»¿# Roadmap por fases
+# Roadmap por fases
 
 ## Fase 0. Fundacion
 
@@ -77,7 +77,20 @@ Entregable: respuestas mas precisas, menos contexto manual y mejor continuidad e
 
 Estado: completada en su primera version funcional
 
-## Fase 6. Calidad visual y snippets
+## Fase 6. Producto distribuible
+
+- empaquetado multiplataforma base
+- auto-update configurado a nivel de producto
+- Open VSX como registry de extensiones por defecto
+- telemetria y observabilidad base
+- branding de binarios de Windows
+- release Win32 validado end-to-end
+
+Entregable: producto instalable con una primera base operativa de distribucion.
+
+Estado: completada en su primera base operativa, con Windows validado
+
+## Fase 7. Calidad visual y snippets
 
 - resaltado de sintaxis mas rico en bloques de codigo
 - acciones sobre snippets (`copy code`, etc.)
@@ -88,36 +101,35 @@ Entregable: experiencia visual mas profesional y comparable a IDEs AI maduros.
 
 Estado: siguiente fase recomendada
 
-## Fase 7. Robustez del agente
+## Fase 8. Robustez del agente
 
 - parser de errores mas inteligente
 - configuracion del numero maximo de intentos del fix loop
 - mejor tasa de extraccion de propuestas `openml-edit`
 - validaciones mas fuertes antes de aplicar cambios
 - mejor estrategia de retry cuando proveedores remotos devuelvan respuestas truncadas
+- barridos preventivos para evitar secretos reales en tests o fixtures
 
 Entregable: flujos de correccion y edicion mas consistentes entre modelos.
 
 Estado: pendiente
 
-## Fase 8. Producto distribuible
+## Fase 9. Distribucion avanzada
 
-- empaquetado multiplataforma
-- auto-update
-- Open VSX o registry propio
-- telemetria y observabilidad
-- branding visual definitivo
-- endurecimiento final de proveedores remotos y test de conectividad
+- backend real de auto-update
+- validacion real de empaquetado Linux y macOS
+- pipeline CI/CD de releases firmados
+- telemetria conectada a una plataforma real
+- crash reporting y dashboards de observabilidad
 
-Entregable: beta privada distribuible y sostenible de mantener.
+Entregable: beta privada distribuible y sostenible de mantener en varias plataformas.
 
 Estado: pendiente
 
 ## Prioridades inmediatas recomendadas
 
-1. mejorar el render visual de snippets y aÃ±adir acciones sobre codigo
+1. mejorar el render visual de snippets y anadir acciones sobre codigo
 2. hacer configurable el numero maximo de intentos del fix loop
 3. mejorar el parser de errores para priorizar fallos relevantes antes del siguiente parche
 4. definir icono/logo definitivo y completar branding multiplataforma
 5. evaluar una capa semantica mas rica con embeddings o servicio opcional
-

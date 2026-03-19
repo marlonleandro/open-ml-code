@@ -8,7 +8,8 @@
 
 - editor funcional construido sobre `Code - OSS`
 - tema por defecto `OpenML Prussian Blue`
-- ejecutable Windows `omlcode.exe`
+- ejecutable Windows `OMLCode.exe`
+- instalador Windows `OpenMLCodeSetup.exe`
 - chat propio `OpenML Assistant` en la barra lateral derecha
 - modos `agent`, `ask`, `edit`, `plan`
 - `streaming` de respuestas
@@ -17,6 +18,7 @@
 - herramientas de lectura, busqueda, ejecucion y fix loop
 - edicion asistida con preview, apply y tests sugeridos
 - contexto profundo con indexado ligero, simbolos, memoria y reglas persistentes
+- base de distribucion con Open VSX, scripts de empaquetado y runbook de release
 
 ## Proveedores soportados
 
@@ -112,7 +114,7 @@ Para planes de implementacion antes de tocar codigo.
 Ejemplo:
 
 ```text
-Diseña un plan para agregar autenticacion JWT a este proyecto.
+Disena un plan para agregar autenticacion JWT a este proyecto.
 ```
 
 ### Modo `edit`
@@ -127,12 +129,6 @@ Crea un archivo src/utils/fileReader.ts con una funcion async readTextFile(path:
 
 ```text
 Lee el archivo activo y optimizalo sin cambiar su comportamiento. Mejora legibilidad, estructura y manejo de errores. Devuelve una propuesta editable.
-```
-
-```text
-Refactoriza estos archivos para reducir duplicacion y separa responsabilidades. Devuelve una propuesta editable multiarchivo:
-- src/services/userService.ts
-- src/controllers/userController.ts
 ```
 
 ### Modo `agent`
@@ -158,8 +154,6 @@ Cuando el modelo devuelve una propuesta estructurada:
 
 Si una respuesta larga se corta o quieres repetir una consulta, usa `Run Again` desde el menu. Tambien puedes cambiar primero el modelo y luego volver a ejecutar el mismo prompt.
 
-Si `Apply Edits` no aparece usable, normalmente significa que el modelo no devolvio una propuesta `openml-edit` estructurada. En ese caso, vuelve a pedir el cambio indicando explicitamente que lo entregue como propuesta editable.
-
 ## Herramientas del asistente
 
 Puedes escribir comandos directos en el chat:
@@ -181,70 +175,28 @@ Puedes escribir comandos directos en el chat:
 - `/context <query>`: construye contexto profundo relevante para una consulta
 - `/reindex`: reconstruye el indice semantico ligero
 
-## Fix Loop
+## Distribucion
 
-El flujo `/fix` funciona asi:
+### Generar el instalador de Windows
 
-1. ejecuta un comando de tests
-2. recoge salida y diagnosticos
-3. pide al modelo una propuesta editable
-4. aplicas los cambios con `Apply Edits`
-5. el asistente vuelve a correr los tests automaticamente
-6. si sigue fallando, hace otro intento hasta un limite controlado
-
-Ejemplos:
-
-```text
-/fix
-```
-
-```text
-/fix npm test
-```
-
-```text
-/fix pytest
-```
-
-## Contexto profundo
-
-`OpenML Assistant` ya puede enriquecer automaticamente los prompts con:
-
-- fragmentos relevantes del workspace indexado
-- simbolos encontrados por `WorkspaceSymbolProvider`
-- memoria persistente del proyecto
-- reglas persistentes por workspace
-
-Tambien puedes gestionarlo desde la paleta de comandos:
-
-- `OpenML Assistant: Rebuild Semantic Index`
-- `OpenML Assistant: Remember Project Note`
-- `OpenML Assistant: Add Workspace Rule`
-
-## Comandos utiles para desarrollo
-
-### Editor base
+Desde la raiz del proyecto:
 
 ```powershell
-cd apps/code-oss
-npm.cmd install
-npm.cmd run compile
-npm.cmd run electron
-.\scripts\code.bat
+powershell -ExecutionPolicy Bypass -File .\scripts\release\package-win32.ps1 -Arch x64 -Target user
 ```
 
-### Extension del asistente
+Salida esperada:
+
+- bundle Win32 en `apps/VSCode-win32-x64`
+- instalador en `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`
+
+Scripts utiles:
 
 ```powershell
-cd apps/code-oss
-npm.cmd run gulp -- compile-extension:openml-vibe-assistant
-```
-
-### Monorepo raiz
-
-```powershell
-pnpm install
-pnpm build
+pnpm run release:win32
+pnpm run release:linux
+pnpm run release:darwin
+pnpm run release:observability
 ```
 
 ## Estado actual del proyecto
@@ -258,16 +210,20 @@ pnpm build
 - proveedor `Anthropic` alineado con `Messages API`
 - proveedor `Azure Foundry` integrado con `Responses API`
 - listado remoto de modelos para `Anthropic` y `OpenAI`
-- reejecucion del ultimo prompt y cancelacion en curso desde la UI
+- distribucion Windows validada end-to-end
+- ejecutable Windows unificado como `OMLCode.exe`
+- instalador Windows unificado como `OpenMLCodeSetup.exe`
+- correccion aplicada para evitar un secreto real en tests del repo
 
 ## Documentacion adicional
 
 - [Planning](./PLANNING.md)
 - [Arquitectura](./docs/architecture.md)
 - [Roadmap](./docs/roadmap.md)
+- [Distribucion](./docs/distribution.md)
 - [Branding](./docs/openml-code-branding.md)
 
-## Créditos
+## Creditos
 
 - Desarrollado por: **Marlon Leandro**
 - Sitio web: https://mycustomdevs.com/
@@ -275,5 +231,5 @@ pnpm build
 
 ## Donaciones
 
-- **Yape** => Número de teléfono +51985689885
+- **Yape** => Numero de telefono +51985689885
 - **Zinli** => Nro. de cuenta 4-013-88068677-16

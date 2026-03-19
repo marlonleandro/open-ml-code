@@ -400,6 +400,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 		}
 
 		const name = product.nameShort;
+		const win32ExecutableName = (product as typeof product & { win32ExecutableName?: string }).win32ExecutableName || product.nameShort;
 		const packageJsonUpdates: Record<string, unknown> = { name, version };
 
 		if (platform === 'linux') {
@@ -637,7 +638,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 
 			result = es.merge(result, gulp.src('resources/win32/VisualElementsManifest.xml', { base: 'resources/win32' })
 				.pipe(replace('@@VERSIONFOLDER@@', versionedResourcesFolder ? `${versionedResourcesFolder}\\` : ''))
-				.pipe(rename(product.nameShort + '.VisualElementsManifest.xml')));
+				.pipe(rename(win32ExecutableName + '.VisualElementsManifest.xml')));
 
 			result = es.merge(result, gulp.src('.build/policies/win32/**', { base: '.build/policies/win32' })
 				.pipe(rename(f => f.dirname = `policies/${f.dirname}`)));
@@ -652,7 +653,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 					.pipe(replace('@@AppxPackageDisplayName@@', product.nameLong))
 					.pipe(replace('@@AppxPackageDescription@@', product.win32NameVersion))
 					.pipe(replace('@@ApplicationIdShort@@', product.win32RegValueName))
-					.pipe(replace('@@ApplicationExe@@', product.nameShort + '.exe'))
+					.pipe(replace('@@ApplicationExe@@', win32ExecutableName + '.exe'))
 					.pipe(replace('@@FileExplorerContextMenuID@@', quality === 'stable' ? 'OpenWithCode' : 'OpenWithCodeInsiders'))
 					.pipe(replace('@@FileExplorerContextMenuCLSID@@', (product as { win32ContextMenu?: Record<string, { clsid: string }> }).win32ContextMenu![arch].clsid))
 					.pipe(replace('@@FileExplorerContextMenuDLL@@', `${quality === 'stable' ? 'code' : 'code_insider'}_explorer_command_${arch}.dll`))

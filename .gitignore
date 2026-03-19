@@ -3,6 +3,8 @@ out/
 .turbo/
 .DS_Store
 *.log
+*.exe
+VSCode-win32-x64/
 
 apps/code-oss/.build/*
 electron/

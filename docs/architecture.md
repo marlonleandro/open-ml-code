@@ -2,7 +2,7 @@
 
 ## 1. Vision de producto
 
-`OpenML Code` se construye sobre `Code - OSS`, pero la mayor parte de la inteligencia vive fuera del core. La regla sigue siendo esta:
+`OpenML Code` se construye sobre `Code - OSS`, pero la mayor parte de la inteligencia vive fuera del core:
 
 `Code - OSS + branding propio + extension AI builtin + tools + contexto profundo + servicios opcionales`
 
@@ -13,22 +13,26 @@ Eso reduce el costo de mantenimiento del fork y permite iterar rapido en la expe
 ```text
 CustomIDE/
 |-- apps/
-|   `-- code-oss/                         # fork o copia funcional de Code - OSS
-|       `-- extensions/
-|           `-- openml-vibe-assistant/    # asistente AI integrado en el editor
+|   |-- code-oss/
+|   |   `-- extensions/
+|   |       `-- openml-vibe-assistant/
+|   `-- VSCode-win32-x64/
 |-- docs/
 |   |-- architecture.md
+|   |-- distribution.md
 |   |-- roadmap.md
 |   `-- openml-code-branding.md
 |-- extensions/
-|   `-- vibe-assistant/                   # MVP externo inicial / base conceptual
+|   `-- vibe-assistant/
 |-- packages/
-|   |-- agent-core/                       # prompts, policy, orquestacion futura
-|   `-- shared-types/                     # tipos de dominio y contratos
+|   |-- agent-core/
+|   `-- shared-types/
 |-- services/
-|   |-- gateway/                          # futuro proxy/API opcional
-|   |-- memory/                           # futuro almacenamiento externo de memoria
-|   `-- indexing/                         # futuro indexado semantico mas rico
+|   |-- gateway/
+|   |-- memory/
+|   `-- indexing/
+|-- scripts/
+|   `-- release/
 |-- README.md
 `-- PLANNING.md
 ```
@@ -69,7 +73,7 @@ Responsabilidad futura:
 - reglas de seguridad
 - planificacion de tareas
 - abstraccion de proveedores de modelos
-- estrategias de herramienta / llamada a tools
+- estrategias de herramienta
 
 ### `packages/shared-types`
 
@@ -90,7 +94,7 @@ Responsabilidad futura:
 - cuotas
 - logs
 - feature flags
-- potencial modo SaaS o modo hibrido
+- potencial modo SaaS o hibrido
 
 ## 4. Stack exacto actual
 
@@ -101,6 +105,7 @@ Responsabilidad futura:
 - TypeScript
 - VS Code Extension API
 - webview propio para el asistente
+- tareas gulp del repo de VS Code para compilar y empaquetar
 
 ### Capa AI actual
 
@@ -109,6 +114,7 @@ Responsabilidad futura:
 - proveedores remotos: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, `Azure Foundry`
 - `SecretStorage` para API keys
 - `markdown-it` para render de respuestas enriquecidas
+- `Open VSX` como registry de extensiones por defecto
 
 ### Contexto profundo actual
 
@@ -117,12 +123,20 @@ Responsabilidad futura:
 - `workspaceState` para memoria y reglas persistentes
 - enriquecimiento automatico de prompts con contexto profundo
 
+### Distribucion y observabilidad
+
+- `product.json` configurado con `quality`, `updateUrl`, `extensionsGallery`, `win32ExecutableName` y `win32SetupExeName`
+- scripts de release en `scripts/release/` para Windows, Linux y macOS
+- runbook operativo en `docs/distribution.md`
+- bundle local inicial de observabilidad via `collect-observability.ps1`
+- empaquetado Win32 validado con bundle `OMLCode.exe` e instalador `OpenMLCodeSetup.exe`
+
 ### Tooling y build
 
 - `pnpm`
 - TypeScript
 - Gulp del repo de VS Code para compilar extensiones builtin
-- PowerShell / `npm.cmd` en Windows
+- PowerShell y `npm.cmd` en Windows
 
 ### Backend futuro
 
@@ -161,11 +175,11 @@ Responsabilidad:
 - construir prompts con contexto local
 - resolver proveedor activo
 - autodetectar modelos de `Ollama` y `LM Studio`
+- listar modelos remotos de `Anthropic` y `OpenAI`
 - hacer llamadas normales y en `streaming`
-- soportar configuracion `local-first` con fallback a proveedores remotos
 - soportar respuestas de modo `edit` preparadas para `openml-edit`
 - integrar contexto profundo antes de cada llamada
-- manejar `Anthropic Messages API` con stream y fallback no-streaming
+- manejar `Anthropic Messages API`
 - manejar `Azure Foundry Responses API`
 - filtrar el catalogo de modelos de `OpenAI` a familias utiles para chat/coding
 
@@ -204,17 +218,14 @@ Archivo principal:
 
 Responsabilidad:
 
-- lectura de archivos (`/read`)
-- busqueda simple en workspace (`/search`)
-- lectura de diff de Git (`/diff`)
-- lectura de diagnosticos (`/errors`)
-- ejecucion de tests (`/test`)
-- ejecucion de comandos con aprobacion (`/run`)
-- loops de fix (`/fix`)
-- memoria del proyecto (`/memory`, `/remember`, `/clear-memory`)
-- reglas persistentes (`/rules`, `/set-rule`, `/clear-rules`)
-- simbolos del workspace (`/symbols`)
-- contexto profundo (`/context`, `/reindex`)
+- lectura de archivos, busqueda y diff
+- lectura de diagnosticos
+- ejecucion de tests
+- ejecucion de comandos con aprobacion
+- loops de fix
+- memoria del proyecto y reglas persistentes
+- simbolos del workspace
+- contexto profundo
 - canal de salida dedicado para ejecucion profunda
 
 ### Contexto profundo
@@ -223,18 +234,17 @@ Archivos principales:
 
 - `apps/code-oss/extensions/openml-vibe-assistant/src/context.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/memory.ts`
+- `apps/code-oss/extensions/openml-vibe-assistant/src/projectState.ts`
 
 Responsabilidad:
 
 - indexar un subconjunto util del workspace en chunks
 - puntuar fragmentos relevantes para una consulta
 - consultar simbolos via LSP
-- persistir memoria y reglas por workspace
+- persistir memoria, reglas e historial resumido por workspace
 - construir un bloque de contexto enriquecido para el modelo
 
 ## 6. Flujo actual del fix loop
-
-El fix loop actual sigue este ciclo:
 
 1. el usuario ejecuta `/fix` o `/fix <comando>`
 2. el asistente corre tests y recoge diagnosticos
@@ -244,22 +254,20 @@ El fix loop actual sigue este ciclo:
 6. el asistente vuelve a correr tests automaticamente
 7. si aun falla, genera un nuevo intento hasta un limite controlado
 
-Este diseño mantiene al usuario en control de la aplicacion de cambios, pero automatiza la parte de revalidacion y siguiente intento.
-
 ## 7. Flujo actual de contexto profundo
 
 1. el usuario envia una consulta o un prompt de edicion
 2. el asistente indexa o reutiliza el indice ligero del workspace
 3. recupera chunks relevantes segun la consulta y el archivo activo
 4. consulta simbolos del workspace por `WorkspaceSymbolProvider`
-5. incorpora memoria y reglas persistentes del workspace
-6. concatena ese bloque como `Deep workspace context` antes de llamar al modelo
+5. incorpora memoria, historial resumido y reglas persistentes del workspace
+6. concatena ese bloque como contexto profundo antes de llamar al modelo
 
 ## 8. Principios de arquitectura
 
 1. Mantener el fork de VS Code lo mas delgado posible.
 2. Poner la mayor parte de la inteligencia en extensiones y paquetes compartidos.
-3. Diseñar herramientas explicitas y auditables en vez de prompts opacos.
+3. Disenar herramientas explicitas y auditables en vez de prompts opacos.
 4. Pedir aprobacion antes de ejecutar comandos, editar muchos archivos o tocar configuracion sensible.
 5. Separar proveedor de modelos, render UI, secretos, edicion, tools y contexto desde el inicio.
 6. Favorecer `local-first` siempre que el usuario tenga modelos corriendo localmente.
@@ -273,7 +281,8 @@ El producto actual ya cubre:
 - fork funcional de `Code - OSS`
 - branding tecnico principal
 - build y arranque local validados
-- ejecutable `omlcode.exe` en Windows
+- ejecutable `OMLCode.exe` en Windows
+- instalador `OpenMLCodeSetup.exe` en Windows
 - asistente builtin dentro del editor
 - proveedores locales y remotos
 - listado remoto de modelos para `Anthropic` y `OpenAI`
@@ -282,28 +291,18 @@ El producto actual ya cubre:
 - autodeteccion de modelos locales
 - renderizado Markdown de respuestas
 - tools del workspace
-- edicion asistida con preview/apply/tests
+- edicion asistida con preview, apply y tests
 - fix loop automatico de primera iteracion
 - contexto profundo funcional de primera iteracion
-- compatibilidad ajustada con `Anthropic Messages API`
-- proveedor `Azure Foundry` con `Responses API`
-- listados de modelos remotos para `Anthropic` y `OpenAI`
+- proveedor `Azure Foundry`
 - UI con `Run Again` y cancelacion en curso
+- release Win32 validado de punta a punta
 
 Todavia no cubre:
 
 - resaltado de sintaxis avanzado y acciones sobre snippets
 - parsing mas inteligente de errores de tests
 - embeddings o vector DB reales para contexto semantico
-- backend opcional / gateway centralizado
+- backend opcional o gateway centralizado
 - branding visual final del producto
-
-## 10. Riesgos tecnicos conocidos
-
-- mantener un fork profundo de VS Code encarece mucho el proyecto
-- el estado persistido del workbench puede hacer visibles restos de layout en perfiles viejos
-- el acceso al Marketplace oficial de Microsoft no debe asumirse para una distribucion propia
-- los builds de Windows dependen de modulos nativos sensibles al entorno
-- el modelo no siempre devuelve una propuesta `openml-edit`; se necesita seguir endureciendo prompts y validaciones
-- el fix loop actual es funcional, pero aun no prioriza automaticamente la causa raiz mas relevante entre varios fallos
-- el contexto profundo actual mejora mucho la precision, pero sigue siendo un indice local ligero y no una capa semantica avanzada
+- validacion de release Linux/macOS al mismo nivel que Windows

@@ -8,6 +8,7 @@ Construir `OpenML Code`, un IDE propio basado en `Code - OSS`, con una experienc
 2. edicion asistida multiarchivo
 3. ejecucion controlada dentro del IDE
 4. contexto profundo de workspace
+5. distribucion real del producto
 
 La estrategia sigue siendo de dos capas:
 
@@ -19,12 +20,14 @@ La estrategia sigue siendo de dos capas:
 - Nombre del producto: `OpenML Code`
 - Base del editor: `Code - OSS`
 - Tema por defecto: `OpenML Prussian Blue`
-- Ejecutable en Windows: `omlcode.exe`
+- Ejecutable local y distribuible en Windows: `OMLCode.exe`
+- Instalador Windows: `OpenMLCodeSetup.exe`
 - Flujo principal de modelos: `Ollama` y `LM Studio`
 - Proveedores remotos soportados: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, `Azure Foundry`
 - Chat propio ubicado en la barra lateral derecha
 - `GitHub Copilot` removido como chat por defecto del producto
 - API keys remotas guardadas en `SecretStorage`
+- Registry por defecto: `Open VSX`
 - Filosofia UX del asistente: compacta, minimalista y cercana a IDEs AI modernos
 
 ## 3. Estado actual real
@@ -32,7 +35,9 @@ La estrategia sigue siendo de dos capas:
 ### Producto
 
 - `OpenML Code` compila y arranca localmente
-- el ejecutable de Windows ya se genera como `omlcode.exe`
+- el runtime local de Electron ya se genera como `OMLCode.exe`
+- el bundle Win32 tambien se genera con `OMLCode.exe`
+- el instalador Win32 ya se genera como `OpenMLCodeSetup.exe`
 - el launcher `./scripts/code.bat` funciona para abrir el IDE y validar version
 - el branding tecnico principal esta aplicado en el fork
 - el tema por defecto ya usa la paleta `Prussian Blue`
@@ -41,19 +46,21 @@ La estrategia sigue siendo de dos capas:
 
 Hay dos nociones de version importantes:
 
-- Version comercial del producto: `OpenML Code 1.0.0`
+- Version comercial del producto: `OpenML Code 1.0.0-beta1`
 - Version tecnica interna del host de VS Code: `1.95.0`
 
-Esto se separo porque las extensiones builtin de VS Code necesitan una version API compatible del host. Si se usa `1.0.0` como version interna del host, fallan extensiones como `vscode.json-language-features`.
+Esto se separo porque las extensiones builtin de VS Code necesitan una version API compatible del host.
 
 ## 4. Estructura actual del repo
 
 ```text
 CustomIDE/
 |-- apps/
-|   `-- code-oss/
+|   |-- code-oss/
+|   `-- VSCode-win32-x64/
 |-- docs/
 |   |-- architecture.md
+|   |-- distribution.md
 |   |-- roadmap.md
 |   `-- openml-code-branding.md
 |-- extensions/
@@ -63,6 +70,8 @@ CustomIDE/
 |   `-- shared-types/
 |-- services/
 |   `-- gateway/
+|-- scripts/
+|   `-- release/
 |-- .vscode/
 |-- README.md
 `-- PLANNING.md
@@ -70,16 +79,16 @@ CustomIDE/
 
 ## 5. Archivos importantes hoy
 
-### Branding y runtime
+### Branding, runtime y distribucion
 
 - `apps/code-oss/product.json`
-- `apps/code-oss/package.json`
-- `apps/code-oss/package-lock.json`
 - `apps/code-oss/build/lib/electron.ts`
+- `apps/code-oss/build/gulpfile.vscode.ts`
+- `apps/code-oss/build/gulpfile.vscode.win32.ts`
+- `apps/code-oss/build/win32/code.iss`
 - `apps/code-oss/scripts/code.bat`
-- `apps/code-oss/scripts/code-cli.bat`
-- `apps/code-oss/scripts/node-electron.bat`
-- `apps/code-oss/scripts/test.bat`
+- `scripts/release/package-win32.ps1`
+- `docs/distribution.md`
 
 ### Asistente AI
 
@@ -92,6 +101,7 @@ CustomIDE/
 - `apps/code-oss/extensions/openml-vibe-assistant/src/tools.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/context.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/memory.ts`
+- `apps/code-oss/extensions/openml-vibe-assistant/src/projectState.ts`
 
 ## 6. Capacidades actuales de OpenML Assistant
 
@@ -102,13 +112,12 @@ CustomIDE/
 - `streaming` de respuestas
 - soporte para `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter` y `Azure Foundry`
 - autodeteccion de modelos para `Ollama` y `LM Studio`
-- listado remoto de modelos para `Anthropic` y `OpenAI` usando la API key guardada
+- listado remoto de modelos para `Anthropic` y `OpenAI`
 - selector de proveedor y modelo desde la UI
 - renderizado Markdown real en respuestas
 - envio con `Enter` y salto de linea con `Shift+Enter`
 - opcion `Run Again` para relanzar el ultimo prompt con el modelo actual
 - boton `Send` que cambia a `Stop` durante la ejecucion y permite cancelar la solicitud activa
-- compatibilidad reforzada con la API de `Anthropic` para `POST /v1/messages` con stream y fallback no-streaming
 - proveedor `Azure Foundry` via `Responses API`
 
 ### Seguridad y configuracion
@@ -116,6 +125,7 @@ CustomIDE/
 - `SecretStorage` para API keys remotas
 - migracion desde settings legacy a secretos seguros
 - comandos con aprobacion antes de ejecucion
+- correccion de secreto real en test reemplazado por valor sintetico para evitar fugas en el repo
 
 ### Herramientas del workspace
 
@@ -168,119 +178,64 @@ CustomIDE/
 - el resaltado de sintaxis de snippets en el chat todavia es basico
 - el parsing de errores de tests todavia es generico; no prioriza los fallos mas relevantes
 - el indexado semantico actual es ligero y local; aun no usa embeddings ni vector DB
-- no se ha completado el branding visual final del producto
+- el auto-update sigue configurado a nivel de producto, pero el backend real aun no esta desplegado
+- Linux y macOS ya tienen scripts de release, pero la validacion completa realizada en esta etapa fue la de Windows
 
-## 8. Estado del build
+## 8. Estado del build y release
 
-Validaciones ya completadas:
+Validaciones completadas:
 
 - `npm.cmd install` en `apps/code-oss`: OK
 - `npm.cmd run compile` en `apps/code-oss`: OK
 - `npm.cmd run electron`: OK
-- `apps/code-oss/.build/electron/omlcode.exe`: generado correctamente
+- `apps/code-oss/.build/electron/OMLCode.exe`: generado correctamente
 - `./scripts/code.bat --version`: OK
 - compilacion separada de `openml-vibe-assistant`: OK
+- `scripts/release/package-win32.ps1 -Arch x64 -Target user`: OK
+- bundle Win32 generado en `apps/VSCode-win32-x64`: OK
+- instalador Win32 generado en `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`: OK
 
 ## 9. Roadmap actualizado
 
 ### Fase 0. Fundacion
 
-- fork de `Code - OSS`
-- branding tecnico inicial
-- build local
-- base monorepo
-
 Estado: completada
 
 ### Fase 1. Asistente usable
-
-- panel AI propio
-- proveedores locales y remotos
-- chat usable en el IDE
-- modos `agent`, `ask`, `edit`, `plan`
 
 Estado: completada
 
 ### Fase 2. Pulido AI
 
-- `streaming`
-- `SecretStorage`
-- autodeteccion de modelos locales
-- herramientas iniciales del workspace
-- renderizado Markdown
-
 Estado: completada
 
 ### Fase 3. Edicion asistida
-
-- preview de cambios
-- aplicacion aprobada
-- edicion multiarchivo
-- tests sugeridos
 
 Estado: completada en su primera version funcional
 
 ### Fase 4. Herramientas y ejecucion profunda
 
-- terminal controlada mas rica
-- ejecucion de tests
-- lectura de errores
-- loops de fix
-
 Estado: completada en su primera version funcional
 
 ### Fase 5. Contexto profundo
-
-- indexado semantico
-- simbolos/LSP
-- memoria de proyecto
-- reglas persistentes por workspace
 
 Estado: completada en su primera version funcional
 
 ### Fase 6. Producto distribuible
 
-- empaquetado multiplataforma
-- auto-update
-- registry de extensiones
-- telemetria y observabilidad
+- empaquetado Win32 validado end-to-end
+- instalador renombrado a `OpenMLCodeSetup.exe`
+- ejecutable Windows unificado como `OMLCode.exe`
+- base de `Open VSX`, `updateUrl` y observabilidad local ya integrada
 
-Estado: pendiente
+Estado: completada en su primera base operativa, con Windows validado
 
 ## 10. Riesgos y observaciones
 
 - mantener un fork profundo del core sigue siendo costoso; conviene dejar la mayor parte posible en extensiones
 - el estado persistido del workbench puede dejar restos de layout en perfiles viejos
 - el acceso al Marketplace oficial de Microsoft no debe asumirse para la distribucion final
-- el build de Windows sigue dependiendo de modulos nativos y toolchain correcto
+- `OpenML Code` queda orientado a `Open VSX` como registry por defecto
 - algunos modelos siguen siendo inconsistentes devolviendo propuestas editables estructuradas
 - los catalogos remotos de modelos pueden incluir ids no deseados; hoy el listado de `OpenAI` ya se filtra a familias utiles para chat/coding
-
-## 11. Comandos utiles
-
-### En `apps/code-oss`
-
-```powershell
-npm.cmd install
-npm.cmd run compile
-npm.cmd run electron
-.\scripts\code.bat
-.\scripts\code.bat --version
-npm.cmd run gulp -- compile-extension:openml-vibe-assistant
-```
-
-### En la raiz del monorepo
-
-```powershell
-pnpm install
-pnpm build
-```
-
-## 12. Siguientes pasos recomendados
-
-1. mejorar el render visual de snippets y acciones sobre codigo
-2. hacer configurable el numero maximo de intentos del fix loop
-3. mejorar el parser de errores para priorizar la causa raiz
-4. fortalecer todavia mas el batching automatico cuando un proveedor remoto trunque respuestas
-5. definir icono/logo definitivo y completar branding multiplataforma
-6. evaluar una capa de indexado semantico mas rica con embeddings o servicio opcional
+- cuando GitHub detecte secretos expuestos, ademas del fix en codigo se debe rotar o revocar la credencial real
