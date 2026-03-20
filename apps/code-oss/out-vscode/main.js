@@ -9236,7 +9236,7 @@ var init_product = __esm({
         });
       }
     } else {
-      product2 = { "nameShort": "OpenML Code", "nameLong": "OpenML Code", "applicationName": "openml-code", "dataFolderName": ".openml-code", "win32MutexName": "openmlcode", "licenseName": "MIT", "licenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt", "serverLicenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt", "serverGreeting": [], "serverLicense": [], "serverLicensePrompt": "", "serverApplicationName": "openml-code-server", "serverDataFolderName": ".openml-code-server", "tunnelApplicationName": "openml-code-tunnel", "win32DirName": "OpenML Code", "win32NameVersion": "OpenML Code", "win32RegValueName": "OpenMLCode", "win32x64AppId": "{{7F7F6D7A-60F2-4D1A-9C06-5A8D9C9B1D31}", "win32arm64AppId": "{{EE4B6DA6-3D7D-4A7B-8F3D-A5110A8E97A4}", "win32x64UserAppId": "{{8AB3C6B2-79B0-466A-AE6D-EC4B8CC3CB7A}", "win32arm64UserAppId": "{{D79B2ED9-3A7B-48A6-91B1-2E4FD31D0D6B}", "win32AppUserModelId": "OpenML.Code", "win32ExecutableName": "OMLCode", "win32ShellNameShort": "OpenML &Code", "win32TunnelServiceMutex": "openmlcode-tunnelservice", "win32TunnelMutex": "openmlcode-tunnel", "darwinBundleIdentifier": "com.openml.code", "darwinProfileUUID": "4D8C7B8A-5B88-4E02-9ACB-0B1EF50D7C12", "darwinProfilePayloadUUID": "4B2D9B6A-12A4-4A55-A693-F0862A0A3F11", "linuxIconName": "openml-code", "licenseFileName": "LICENSE.txt", "reportIssueUrl": "https://github.com/microsoft/vscode/issues/new", "nodejsRepository": "https://nodejs.org", "urlProtocol": "openml-code", "webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/", "builtInExtensions": [{ "name": "ms-vscode.js-debug-companion", "version": "1.1.3", "sha256": "7380a890787452f14b2db7835dfa94de538caf358ebc263f9d46dd68ac52de93", "repo": "https://github.com/microsoft/vscode-js-debug-companion", "metadata": { "id": "99cb0b7f-7354-4278-b8da-6cc79972169d", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }, { "name": "ms-vscode.js-debug", "version": "1.112.0", "sha256": "c24322931434940938f8cf76ebc3dac1e95a5539b9625b165b6672d7f7eafea8", "repo": "https://github.com/microsoft/vscode-js-debug", "metadata": { "id": "25629058-ddac-4e17-abba-74678e126c5d", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }, { "name": "ms-vscode.vscode-js-profile-table", "version": "1.0.10", "sha256": "7361748ddf9fd09d8a2ed1f2a2d7376a2cf9aae708692820b799708385c38e08", "repo": "https://github.com/microsoft/vscode-js-profile-visualizer", "metadata": { "id": "7e52b41b-71ad-457b-ab7e-0620f1fc4feb", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }], "quality": "stable", "extensionsGallery": { "serviceUrl": "https://open-vsx.org/vscode/gallery", "itemUrl": "https://open-vsx.org/vscode/item", "resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}", "publisherUrl": "https://open-vsx.org/publisher/{publisher}", "nlsBaseUrl": "https://open-vsx.org/vscode/gallery", "controlUrl": "" }, "updateUrl": "https://updates.openmlcode.dev/api/update", "win32ContextMenu": { "x64": { "clsid": "{2F4E7D5C-97B8-4C14-BB7B-9A9A1C8D2F11}" }, "arm64": { "clsid": "{7E38B7D2-0F8D-4F8C-A4F1-6A0E7E6B4C22}" } }, "win32SetupExeName": "OpenMLCodeSetup", "version": "1.95.0", "commit": "7cb4f833f1677dfaaf031942da385ec83d264414", "date": "2026-03-18T18:32:40-05:00" };
+      product2 = { "nameShort": "OpenML Code", "nameLong": "OpenML Code", "applicationName": "openml-code", "dataFolderName": ".openml-code", "win32MutexName": "openmlcode", "licenseName": "MIT", "licenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt", "serverLicenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt", "serverGreeting": [], "serverLicense": [], "serverLicensePrompt": "", "serverApplicationName": "openml-code-server", "serverDataFolderName": ".openml-code-server", "tunnelApplicationName": "openml-code-tunnel", "win32DirName": "OpenML Code", "win32NameVersion": "OpenML Code", "win32RegValueName": "OpenMLCode", "win32x64AppId": "{{7F7F6D7A-60F2-4D1A-9C06-5A8D9C9B1D31}", "win32arm64AppId": "{{EE4B6DA6-3D7D-4A7B-8F3D-A5110A8E97A4}", "win32x64UserAppId": "{{8AB3C6B2-79B0-466A-AE6D-EC4B8CC3CB7A}", "win32arm64UserAppId": "{{D79B2ED9-3A7B-48A6-91B1-2E4FD31D0D6B}", "win32AppUserModelId": "OpenML.Code", "win32ExecutableName": "OMLCode", "win32ShellNameShort": "OpenML &Code", "win32TunnelServiceMutex": "openmlcode-tunnelservice", "win32TunnelMutex": "openmlcode-tunnel", "darwinBundleIdentifier": "com.openml.code", "darwinProfileUUID": "4D8C7B8A-5B88-4E02-9ACB-0B1EF50D7C12", "darwinProfilePayloadUUID": "4B2D9B6A-12A4-4A55-A693-F0862A0A3F11", "linuxIconName": "openml-code", "licenseFileName": "LICENSE.txt", "reportIssueUrl": "https://github.com/microsoft/vscode/issues/new", "nodejsRepository": "https://nodejs.org", "urlProtocol": "openml-code", "webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/", "builtInExtensions": [{ "name": "ms-vscode.js-debug-companion", "version": "1.1.3", "sha256": "7380a890787452f14b2db7835dfa94de538caf358ebc263f9d46dd68ac52de93", "repo": "https://github.com/microsoft/vscode-js-debug-companion", "metadata": { "id": "99cb0b7f-7354-4278-b8da-6cc79972169d", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }, { "name": "ms-vscode.js-debug", "version": "1.112.0", "sha256": "c24322931434940938f8cf76ebc3dac1e95a5539b9625b165b6672d7f7eafea8", "repo": "https://github.com/microsoft/vscode-js-debug", "metadata": { "id": "25629058-ddac-4e17-abba-74678e126c5d", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }, { "name": "ms-vscode.vscode-js-profile-table", "version": "1.0.10", "sha256": "7361748ddf9fd09d8a2ed1f2a2d7376a2cf9aae708692820b799708385c38e08", "repo": "https://github.com/microsoft/vscode-js-profile-visualizer", "metadata": { "id": "7e52b41b-71ad-457b-ab7e-0620f1fc4feb", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }], "quality": "stable", "extensionsGallery": { "serviceUrl": "https://open-vsx.org/vscode/gallery", "itemUrl": "https://open-vsx.org/vscode/item", "resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}", "publisherUrl": "https://open-vsx.org/publisher/{publisher}", "nlsBaseUrl": "https://open-vsx.org/vscode/gallery", "controlUrl": "" }, "updateUrl": "https://updates.openmlcode.dev/api/update", "win32ContextMenu": { "x64": { "clsid": "{2F4E7D5C-97B8-4C14-BB7B-9A9A1C8D2F11}" }, "arm64": { "clsid": "{7E38B7D2-0F8D-4F8C-A4F1-6A0E7E6B4C22}" } }, "win32SetupExeName": "OpenMLCodeSetup", "version": "1.95.0", "commit": "60a99e1665a53683479179252038186f6cea0927", "date": "2026-03-19T17:47:39-05:00" };
       if (Object.keys(product2).length === 0) {
         Object.assign(product2, {
           version: "1.104.0-dev",
@@ -41017,6 +41017,7 @@ var init_cssDevService = __esm({
     init_path();
     init_network();
     init_stopwatch();
+    init_pfs();
     init_environment();
     init_instantiation();
     init_log();
@@ -41037,29 +41038,64 @@ var init_cssDevService = __esm({
         if (!this.isEnabled) {
           return [];
         }
-        const rg = await import("@vscode/ripgrep");
-        return await new Promise((resolve3) => {
-          const sw = StopWatch.create();
-          const chunks = [];
-          const basePath = FileAccess.asFileUri("").fsPath;
-          const process2 = spawn6(rg.rgPath, ["-g", "**/*.css", "--files", "--no-ignore", basePath], {});
-          process2.stdout.on("data", (data) => {
-            chunks.push(data);
+        const sw = StopWatch.create();
+        const basePath = FileAccess.asFileUri("").fsPath;
+        let result = await this.computeCssModulesWithRipgrep(basePath);
+        if (result.length === 0) {
+          result = await this.computeCssModulesWithFsWalk(basePath);
+        }
+        if (result.some((path3) => path3.indexOf("vs/") !== 0)) {
+          this.logService.error(`[CSS_DEV] Detected invalid paths in css modules: ${result.join(", ")}`);
+        }
+        this.logService.info(`[CSS_DEV] DONE, ${result.length} css modules (${Math.round(sw.elapsed())}ms)`);
+        return result;
+      }
+      async computeCssModulesWithRipgrep(basePath) {
+        try {
+          const rg = await import("@vscode/ripgrep");
+          return await new Promise((resolve3) => {
+            const chunks = [];
+            const process2 = spawn6(rg.rgPath, ["-g", "**/*.css", "--files", "--no-ignore", basePath], {});
+            process2.stdout.on("data", (data) => {
+              chunks.push(data);
+            });
+            process2.on("error", (err) => {
+              this.logService.error("[CSS_DEV] FAILED to compute CSS data with ripgrep", err);
+              resolve3([]);
+            });
+            process2.on("close", () => {
+              const data = Buffer.concat(chunks).toString("utf8");
+              resolve3(data.split("\n").filter(Boolean).map((path3) => relative2(basePath, path3).replace(/\\/g, "/")).filter(Boolean).sort());
+            });
           });
-          process2.on("error", (err) => {
-            this.logService.error("[CSS_DEV] FAILED to compute CSS data", err);
-            resolve3([]);
-          });
-          process2.on("close", () => {
-            const data = Buffer.concat(chunks).toString("utf8");
-            const result = data.split("\n").filter(Boolean).map((path3) => relative2(basePath, path3).replace(/\\/g, "/")).filter(Boolean).sort();
-            if (result.some((path3) => path3.indexOf("vs/") !== 0)) {
-              this.logService.error(`[CSS_DEV] Detected invalid paths in css modules, raw output: ${data}`);
+        } catch (error) {
+          this.logService.error("[CSS_DEV] FAILED to load ripgrep for CSS data", error);
+          return [];
+        }
+      }
+      async computeCssModulesWithFsWalk(basePath) {
+        this.logService.info("[CSS_DEV] Falling back to filesystem walk for CSS data");
+        const result = [];
+        const walk = async (folderPath) => {
+          const entries = await Promises2.readdir(folderPath, { withFileTypes: true });
+          await Promise.all(entries.map(async (entry) => {
+            const entryPath = `${folderPath}/${entry.name}`.replace(/\//g, "\\");
+            if (entry.isDirectory()) {
+              await walk(entryPath);
+              return;
             }
-            resolve3(result);
-            this.logService.info(`[CSS_DEV] DONE, ${result.length} css modules (${Math.round(sw.elapsed())}ms)`);
-          });
-        });
+            if (entry.isFile() && entry.name.endsWith(".css")) {
+              result.push(relative2(basePath, entryPath).replace(/\\/g, "/"));
+            }
+          }));
+        };
+        try {
+          await walk(basePath);
+        } catch (error) {
+          this.logService.error("[CSS_DEV] FAILED to compute CSS data with filesystem walk", error);
+          return [];
+        }
+        return result.sort();
       }
     };
     CSSDevelopmentService = __decorateClass([

@@ -345,9 +345,20 @@ function extractAnthropicText(json: any): string {
 }
 
 function buildAzureFoundryResponsesUrl(host: string, apiVersion: string): string {
-	const normalizedHost = host.trim().replace(/\/$/, '');
 	const normalizedVersion = apiVersion.trim() || '2025-04-01-preview';
-	return `${normalizedHost}/openai/responses?api-version=${encodeURIComponent(normalizedVersion)}`;
+	const rawHost = host.trim();
+	if (!rawHost) {
+		return `/openai/responses?api-version=${encodeURIComponent(normalizedVersion)}`;
+	}
+
+	const parsedUrl = new URL(rawHost);
+	const normalizedPath = parsedUrl.pathname.replace(/\/$/, '');
+	if (!/\/openai\/responses$/i.test(normalizedPath)) {
+		parsedUrl.pathname = `${normalizedPath}/openai/responses`;
+	}
+
+	parsedUrl.searchParams.set('api-version', normalizedVersion);
+	return parsedUrl.toString();
 }
 
 function buildAzureFoundryHeaders(apiKey: string, authMode: string): Record<string, string> {
@@ -356,14 +367,64 @@ function buildAzureFoundryHeaders(apiKey: string, authMode: string): Record<stri
 		: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
 }
 
-function extractResponsesApiText(json: any): string {
-	return (json?.output ?? [])
-		.filter((item: { type?: string }) => item?.type === 'message')
-		.flatMap((item: { content?: Array<{ type?: string; text?: string }> }) => item?.content ?? [])
-		.filter((part: { type?: string; text?: string }) => part?.type === 'output_text' && typeof part?.text === 'string')
-		.map((part: { text?: string }) => part.text ?? '')
+function extractTextFromResponseContent(content: unknown): string {
+	if (!Array.isArray(content)) {
+		return '';
+	}
+
+	return content
+		.flatMap(item => {
+			if (!item || typeof item !== 'object') {
+				return [];
+			}
+
+			const typedItem = item as { type?: string; text?: string };
+			if ((typedItem.type === 'output_text' || typedItem.type === 'text') && typeof typedItem.text === 'string') {
+				return [typedItem.text];
+			}
+
+			return [];
+		})
 		.join('')
 		.trim();
+}
+
+function extractResponsesApiText(json: any): string {
+	if (typeof json?.output_text === 'string' && json.output_text.trim()) {
+		return json.output_text.trim();
+	}
+
+	if (Array.isArray(json?.output_text)) {
+		const outputText = json.output_text
+			.map((item: unknown) => {
+				if (typeof item === 'string') {
+					return item;
+				}
+
+				if (item && typeof item === 'object' && typeof (item as { text?: string }).text === 'string') {
+					return (item as { text: string }).text;
+				}
+
+				return '';
+			})
+			.join('')
+			.trim();
+		if (outputText) {
+			return outputText;
+		}
+	}
+
+	const fromMessages = (json?.output ?? [])
+		.filter((item: { type?: string }) => item?.type === 'message')
+		.map((item: { content?: unknown }) => extractTextFromResponseContent(item?.content))
+		.join('')
+		.trim();
+
+	if (fromMessages) {
+		return fromMessages;
+	}
+
+	return extractTextFromResponseContent(json?.content);
 }
 
 async function callAzureFoundry(input: WorkspacePrompt): Promise<ProviderResponse> {
@@ -376,8 +437,7 @@ async function callAzureFoundry(input: WorkspacePrompt): Promise<ProviderRespons
 		model: deployment,
 		input: createUserPrompt(input),
 		instructions: input.systemPrompt,
-		max_output_tokens: getNumber('azureFoundry.maxOutputTokens', DEFAULT_AZURE_FOUNDRY_MAX_OUTPUT_TOKENS),
-		text: { format: { type: 'text' }, verbosity: 'medium' }
+		max_output_tokens: getNumber('azureFoundry.maxOutputTokens', DEFAULT_AZURE_FOUNDRY_MAX_OUTPUT_TOKENS)
 	}, {
 		headers: buildAzureFoundryHeaders(apiKey, authMode)
 	});

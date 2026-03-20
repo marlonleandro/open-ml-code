@@ -63,13 +63,6 @@ CustomIDE/
 |   |-- distribution.md
 |   |-- roadmap.md
 |   `-- openml-code-branding.md
-|-- extensions/
-|   `-- vibe-assistant/
-|-- packages/
-|   |-- agent-core/
-|   `-- shared-types/
-|-- services/
-|   `-- gateway/
 |-- scripts/
 |   `-- release/
 |-- .vscode/
