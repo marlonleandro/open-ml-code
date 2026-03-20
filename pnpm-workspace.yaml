@@ -1,5 +1,3 @@
 packages:
-  - "extensions/*"
-  - "packages/*"
-  - "services/*"
+  - "apps/code-oss/extensions/openml-vibe-assistant"
 

@@ -288,7 +288,7 @@
         "openmlAssistant.azureFoundry.host": {
           "type": "string",
           "default": "https://YOUR-RESOURCE.cognitiveservices.azure.com",
-          "markdownDescription": "Host base de Azure AI Foundry / Azure OpenAI, por ejemplo `https://tu-recurso.cognitiveservices.azure.com`.",
+          "markdownDescription": "Host o endpoint de Azure AI Foundry / Azure OpenAI. Acepta tanto la base `https://tu-recurso.cognitiveservices.azure.com` como el endpoint completo `https://tu-recurso.cognitiveservices.azure.com/openai/responses?api-version=2025-04-01-preview`.",
           "scope": "application"
         },
         "openmlAssistant.azureFoundry.apiVersion": {

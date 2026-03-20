@@ -22,15 +22,6 @@ CustomIDE/
 |   |-- distribution.md
 |   |-- roadmap.md
 |   `-- openml-code-branding.md
-|-- extensions/
-|   `-- vibe-assistant/
-|-- packages/
-|   |-- agent-core/
-|   `-- shared-types/
-|-- services/
-|   |-- gateway/
-|   |-- memory/
-|   `-- indexing/
 |-- scripts/
 |   `-- release/
 |-- README.md
@@ -63,38 +54,6 @@ Responsabilidad:
 - gestion segura de secretos remotos con `SecretStorage`
 - edicion asistida y loops de correccion
 - indexado semantico ligero, simbolos, memoria y reglas persistentes por workspace
-
-### `packages/agent-core`
-
-Responsabilidad futura:
-
-- contratos del agente
-- seleccion de contexto
-- reglas de seguridad
-- planificacion de tareas
-- abstraccion de proveedores de modelos
-- estrategias de herramienta
-
-### `packages/shared-types`
-
-Responsabilidad:
-
-- `AgentRequest`
-- `AgentResponse`
-- `WorkspaceContext`
-- `ToolCall`
-- `PlanStep`
-
-### `services/gateway`
-
-Responsabilidad futura:
-
-- proxy de proveedores
-- autenticacion centralizada
-- cuotas
-- logs
-- feature flags
-- potencial modo SaaS o hibrido
 
 ## 4. Stack exacto actual
 

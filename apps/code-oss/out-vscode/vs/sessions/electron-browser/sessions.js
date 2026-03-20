@@ -528,6 +528,9 @@ export default {
     if (globalThis._VSCODE_DISABLE_CSS_IMPORT_MAP) {
       return;
     }
+    if (document.head.querySelector('script[data-vscode-css-importmap="true"]')) {
+      return;
+    }
     if (Array.isArray(configuration2.cssModules) && configuration2.cssModules.length > 0) {
       performance.mark("code/willAddCssLoader");
       globalThis._VSCODE_CSS_LOAD = function(url) {
@@ -537,13 +540,25 @@ export default {
         link.setAttribute("href", url);
         window.document.head.appendChild(link);
       };
+      const withNormalizedWindowsDrive = (url) => {
+        const match = /^([a-z]+:\/\/[^/]+\/)([A-Z]):(\/.*)$/i.exec(url);
+        if (!match) {
+          return [url];
+        }
+        const [, prefix, drive, suffix] = match;
+        const lowerCased = `${prefix}${drive.toLowerCase()}:${suffix}`;
+        return lowerCased === url ? [url] : [url, lowerCased];
+      };
       const importMap = { imports: {} };
       for (const cssModule of configuration2.cssModules) {
         const cssUrl = new URL(cssModule, baseUrl).href;
         const jsSrc = `globalThis._VSCODE_CSS_LOAD('${cssUrl}');
 `;
         const blob = new Blob([jsSrc], { type: "application/javascript" });
-        importMap.imports[cssUrl] = URL.createObjectURL(blob);
+        const blobUrl = URL.createObjectURL(blob);
+        for (const normalizedCssUrl of withNormalizedWindowsDrive(cssUrl)) {
+          importMap.imports[normalizedCssUrl] = blobUrl;
+        }
       }
       const ttp = window.trustedTypes?.createPolicy("vscode-bootstrapImportMap", { createScript(value) {
         return value;
