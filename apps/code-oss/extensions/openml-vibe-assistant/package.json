@@ -12,6 +12,7 @@
     "Other"
   ],
   "extensionKind": [
+    "ui",
     "workspace"
   ],
   "activationEvents": [

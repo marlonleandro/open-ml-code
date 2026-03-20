@@ -14,9 +14,21 @@ const remoteProviders = [
 ];
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-	initializeSecretStorage(context.secrets, context.globalStorageUri);
-	initializeWorkspaceMemory(context.workspaceState);
-	await migrateLegacySecrets();
+	try {
+		initializeSecretStorage(context.secrets, context.globalStorageUri);
+	} catch (error) {
+		console.error('[OpenML Assistant] Failed to initialize secret storage.', error);
+	}
+
+	try {
+		initializeWorkspaceMemory(context.workspaceState);
+	} catch (error) {
+		console.error('[OpenML Assistant] Failed to initialize workspace memory.', error);
+	}
+
+	void migrateLegacySecrets().catch(error => {
+		console.error('[OpenML Assistant] Failed to migrate legacy secrets.', error);
+	});
 
 	const provider = new OpenMLAssistantViewProvider(context.extensionUri);
 	let autoOpenTimer: NodeJS.Timeout | undefined;
@@ -152,7 +164,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 	void rebuildSemanticIndex().then(chunks => {
 		void provider.refresh();
 		void vscode.window.setStatusBarMessage(`OpenML Assistant indexed ${chunks} chunks for deep context.`, 4000);
-	}, () => undefined);
+	}, error => {
+		console.error('[OpenML Assistant] Failed to rebuild semantic index during activation.', error);
+	});
 }
 
 export function deactivate(): void {}

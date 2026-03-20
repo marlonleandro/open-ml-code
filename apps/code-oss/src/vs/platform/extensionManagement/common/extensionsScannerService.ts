@@ -935,11 +935,21 @@ class CachedExtensionsScanner extends ExtensionsScanner {
 	}
 
 	override async scanExtensions(input: ExtensionScannerInput): Promise<IRelaxedScannedExtension[]> {
+		// OpenML Code ships additional built-in extensions in its packaged app.
+		// Avoid stale built-in extension caches masking newly added system extensions
+		// such as the bundled assistant after reinstall/update.
+		if (input.type === ExtensionType.System) {
+			const result = await super.scanExtensions(input);
+			const cacheFile = this.getCacheFile(input);
+			await this.writeExtensionCache(cacheFile, { input, result });
+			return result;
+		}
+
 		const cacheFile = this.getCacheFile(input);
 		const cacheContents = await this.readExtensionCache(cacheFile);
 		this.input = input;
 		if (cacheContents && cacheContents.input && ExtensionScannerInput.equals(cacheContents.input, this.input)) {
-			this.logService.debug('Using cached extensions scan result', input.type === ExtensionType.System ? 'system' : 'user', input.location.toString());
+			this.logService.debug('Using cached extensions scan result', 'user', input.location.toString());
 			this.cacheValidatorThrottler.trigger(() => this.validateCache());
 			return cacheContents.result.map((extension) => {
 				// revive URI object
