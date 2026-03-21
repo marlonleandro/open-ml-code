@@ -208,6 +208,8 @@ pnpm run release:win32
 pnpm run release:linux
 pnpm run release:darwin
 pnpm run release:observability
+pnpm run extension:package
+pnpm run extension:publish:openvsx
 ```
 
 ## Requisitos para actualizar o compilar el proyecto

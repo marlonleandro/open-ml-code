@@ -40,6 +40,7 @@ type WebviewInboundMessage =
 	| { type: 'refreshModels' }
 	| { type: 'previewEdits' }
 	| { type: 'applyEdits' }
+	| { type: 'discardEdits' }
 	| { type: 'showSuggestedTests' }
 	| { type: 'copyLastResponse' }
 	| { type: 'insertLastResponse' }
@@ -61,6 +62,7 @@ type ChatState = {
 	localFirst: boolean;
 	mode: AssistantMode;
 	hasEditProposal: boolean;
+	showAgentApplyPrompt: boolean;
 	suggestedTestsCount: number;
 	messages: ChatMessage[];
 };
@@ -328,6 +330,9 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			case 'applyEdits':
 				await this.applyEdits();
 				return;
+			case 'discardEdits':
+				await this.discardEdits();
+				return;
 			case 'showSuggestedTests':
 				await this.showTests();
 				return;
@@ -549,6 +554,17 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		}
 	}
 
+	private async discardEdits(): Promise<void> {
+		if (!this.lastEditProposal) {
+			return;
+		}
+
+		await clearEditPreviewArtifacts();
+		this.lastEditProposal = undefined;
+		await this.syncState();
+		void vscode.window.showInformationMessage('OpenML Assistant cleared the pending edit proposal.');
+	}
+
 	private async showTests(): Promise<void> {
 		try {
 			if (!this.lastEditProposal) {
@@ -616,6 +632,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				localFirst: isLocalProvider(provider),
 				mode: this.mode,
 				hasEditProposal: !!this.lastEditProposal?.files.length,
+				showAgentApplyPrompt: this.mode === 'agent' && !!this.lastEditProposal?.files.length,
 				suggestedTestsCount: this.lastEditProposal?.tests.length ?? 0,
 				messages: this.messages
 			}
@@ -912,6 +929,56 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			gap: 4px;
 		}
 
+		.apply-confirm {
+			display: none;
+			margin-top: 6px;
+			padding: 8px 10px;
+			border: 1px solid rgba(76, 136, 180, 0.32);
+			border-radius: 10px;
+			background: linear-gradient(180deg, rgba(10, 36, 58, 0.96), rgba(7, 24, 39, 0.96));
+			gap: 10px;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.apply-confirm.visible {
+			display: flex;
+		}
+
+		.apply-confirm-text {
+			font-size: 11px;
+			line-height: 1.4;
+			color: var(--text);
+		}
+
+		.apply-confirm-actions {
+			display: inline-flex;
+			gap: 6px;
+			flex-shrink: 0;
+		}
+
+		.confirm-button {
+			padding: 5px 10px;
+			border-radius: 8px;
+			border: 1px solid var(--border);
+			background: rgba(215, 235, 250, 0.08);
+			color: var(--text);
+			cursor: pointer;
+		}
+
+		.confirm-button.primary {
+			background: rgba(76, 136, 180, 0.24);
+			border-color: rgba(76, 136, 180, 0.46);
+		}
+
+		.confirm-button:hover {
+			background: rgba(215, 235, 250, 0.14);
+		}
+
+		.confirm-button.primary:hover {
+			background: rgba(76, 136, 180, 0.34);
+		}
+
 		.mode-selector {
 			display: flex;
 			gap: 3px;
@@ -982,6 +1049,13 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		<section class="composer">
 			<textarea id="promptInput" class="prompt-input" placeholder="Ask, edit, plan, delegate, or use /context, /symbols, /memory, /rules, /read, /search, /test, /fix."></textarea>
 			<div id="hintText" class="hint">Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]</div>
+			<div id="applyConfirm" class="apply-confirm">
+				<div class="apply-confirm-text">Desea aplicar los cambios en el proyecto actual?</div>
+				<div class="apply-confirm-actions">
+					<button id="confirmApplyYesButton" class="confirm-button primary" type="button">Si</button>
+					<button id="confirmApplyNoButton" class="confirm-button" type="button">No</button>
+				</div>
+			</div>
 			<div class="bottom">
 				<div id="modeSelector" class="mode-selector">${modeButtonsMarkup}</div>
 				<button id="sendButton" class="send-button" type="button" aria-label="Send">
@@ -1005,6 +1079,9 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		const sendButton = document.getElementById('sendButton');
 		const statusText = document.getElementById('statusText');
 		const hintText = document.getElementById('hintText');
+		const applyConfirm = document.getElementById('applyConfirm');
+		const confirmApplyYesButton = document.getElementById('confirmApplyYesButton');
+		const confirmApplyNoButton = document.getElementById('confirmApplyNoButton');
 		const modeSelector = document.getElementById('modeSelector');
 		const menuButton = document.getElementById('menuButton');
 		const contextMenu = document.getElementById('contextMenu');
@@ -1404,6 +1481,10 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			}
 		}
 
+		function setApplyPromptVisible(visible) {
+			applyConfirm.classList.toggle('visible', !!visible);
+		}
+
 		function submitPrompt() {
 			const prompt = promptInput.value.trim();
 			if (!prompt) {
@@ -1457,6 +1538,12 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		applyEditsButton.addEventListener('click', () => {
 			closeMenu();
 			vscode.postMessage({ type: 'applyEdits' });
+		});
+		confirmApplyYesButton.addEventListener('click', () => {
+			vscode.postMessage({ type: 'applyEdits' });
+		});
+		confirmApplyNoButton.addEventListener('click', () => {
+			vscode.postMessage({ type: 'discardEdits' });
 		});
 		testsButton.addEventListener('click', () => {
 			closeMenu();
@@ -1528,8 +1615,11 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 					renderModels(message.state.models, message.state.modelLabel);
 					statusText.textContent = message.state.providerLabel + ' | ' + message.state.modelLabel + (message.state.localFirst ? ' | local' : ' | remote');
 					hintText.textContent = message.state.hasEditProposal
-						? 'Edit proposal ready. Use Preview Edits, Apply Edits, or Suggested Tests from the menu.'
+						? (message.state.showAgentApplyPrompt
+							? 'Hay cambios listos. Confirma con Si / No o usa Preview Edits para revisar antes de aplicar.'
+							: 'Edit proposal ready. Use Preview Edits, Apply Edits, or Suggested Tests from the menu.')
 						: 'Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]';
+					setApplyPromptVisible(message.state.showAgentApplyPrompt);
 					setMode(message.state.mode);
 					renderMessages(message.state.messages);
 					return;

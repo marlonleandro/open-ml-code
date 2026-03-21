@@ -19,6 +19,30 @@ Valores principales:
 - `itemUrl`: `https://open-vsx.org/vscode/item`
 - `resourceUrlTemplate`: `https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}`
 
+### Publicar `OpenML Assistant` en Open VSX
+
+Generar el paquete `.vsix`:
+
+```powershell
+pnpm run extension:package
+```
+
+Publicar en Open VSX usando un token:
+
+```powershell
+$env:OPENVSX_TOKEN="tu-token"
+pnpm run extension:publish:openvsx
+```
+
+Artefacto esperado:
+
+- `.build/vsix/openml.openml-vibe-assistant-0.1.0.vsix`
+
+Notas:
+
+- la publicacion usa `npx ovsx publish` desde `scripts/release/publish-openml-assistant-openvsx.ps1`
+- conviene completar el campo `repository` del `package.json` de la extension antes de una publicacion definitiva
+
 ## Auto-update
 
 El producto queda preparado con:
