@@ -1,9 +1,4 @@
 import * as vscode from 'vscode';
-import { rebuildSemanticIndex } from './context';
-import { initializeWorkspaceMemory, rememberProjectNote, addWorkspaceRule } from './memory';
-import { getActiveProvider, providerDisplayName, providerOptions, setActiveProvider } from './providers';
-import { OpenMLAssistantViewProvider } from './panel';
-import { initializeSecretStorage, migrateLegacySecrets, promptForProviderSecret } from './secrets';
 
 const remoteProviders = [
 	{ label: 'OpenAI', provider: 'openai' as const },
@@ -13,13 +8,95 @@ const remoteProviders = [
 	{ label: 'Azure Foundry', provider: 'azurefoundry' as const }
 ];
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
-	initializeSecretStorage(context.secrets, context.globalStorageUri);
-	initializeWorkspaceMemory(context.workspaceState);
-	await migrateLegacySecrets();
+type AssistantModules = {
+	context: typeof import('./context');
+	memory: typeof import('./memory');
+	providers: typeof import('./providers');
+	panel: typeof import('./panel');
+	secrets: typeof import('./secrets');
+};
 
-	const provider = new OpenMLAssistantViewProvider(context.extensionUri);
+type AssistantRuntime = {
+	modules: AssistantModules;
+	provider: import('./panel').OpenMLAssistantViewProvider;
+};
+
+let runtimePromise: Promise<AssistantRuntime> | undefined;
+let webviewRegistered = false;
+
+async function loadModules(): Promise<AssistantModules> {
+	const [context, memory, providers, panel, secrets] = await Promise.all([
+		import('./context'),
+		import('./memory'),
+		import('./providers'),
+		import('./panel'),
+		import('./secrets')
+	]);
+
+	return { context, memory, providers, panel, secrets };
+}
+
+async function ensureAssistant(context: vscode.ExtensionContext): Promise<AssistantRuntime> {
+	if (!runtimePromise) {
+		runtimePromise = (async () => {
+			const modules = await loadModules();
+
+			try {
+				modules.secrets.initializeSecretStorage(context.secrets, context.globalStorageUri);
+			} catch (error) {
+				console.error('[OpenML Assistant] Failed to initialize secret storage.', error);
+			}
+
+			try {
+				modules.memory.initializeWorkspaceMemory(context.workspaceState);
+			} catch (error) {
+				console.error('[OpenML Assistant] Failed to initialize workspace memory.', error);
+			}
+
+			void modules.secrets.migrateLegacySecrets().catch(error => {
+				console.error('[OpenML Assistant] Failed to migrate legacy secrets.', error);
+			});
+
+			const provider = new modules.panel.OpenMLAssistantViewProvider(context.extensionUri);
+			return { modules, provider };
+		})().catch(error => {
+			runtimePromise = undefined;
+			throw error;
+		});
+	}
+
+	const runtime = await runtimePromise;
+
+	if (!webviewRegistered) {
+		context.subscriptions.push(
+			vscode.window.registerWebviewViewProvider(runtime.modules.panel.OpenMLAssistantViewProvider.viewId, runtime.provider, {
+				webviewOptions: {
+					retainContextWhenHidden: true
+				}
+			}),
+			runtime.provider
+		);
+		webviewRegistered = true;
+	}
+
+	return runtime;
+}
+
+async function withAssistant<T>(context: vscode.ExtensionContext, action: (runtime: AssistantRuntime) => Promise<T>): Promise<T | undefined> {
+	try {
+		const runtime = await ensureAssistant(context);
+		return await action(runtime);
+	} catch (error) {
+		console.error('[OpenML Assistant] Activation failed.', error);
+		const message = error instanceof Error ? error.message : String(error);
+		void vscode.window.showErrorMessage(`OpenML Assistant could not start: ${message}`);
+		return undefined;
+	}
+}
+
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
 	let autoOpenTimer: NodeJS.Timeout | undefined;
+
 	const scheduleAutoOpen = (delayMs = 250): void => {
 		if (autoOpenTimer) {
 			clearTimeout(autoOpenTimer);
@@ -27,27 +104,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
 		autoOpenTimer = setTimeout(() => {
 			autoOpenTimer = undefined;
-			void provider.show();
+			void withAssistant(context, async ({ provider }) => {
+				await provider.show();
+			});
 		}, delayMs);
 	};
-	context.subscriptions.push(
-		vscode.window.registerWebviewViewProvider(OpenMLAssistantViewProvider.viewId, provider, {
-			webviewOptions: {
-				retainContextWhenHidden: true
-			}
-		}),
-		new vscode.Disposable(() => {
-			if (autoOpenTimer) {
-				clearTimeout(autoOpenTimer);
-				autoOpenTimer = undefined;
-			}
-		}),
-		provider
-	);
+
+	context.subscriptions.push(new vscode.Disposable(() => {
+		if (autoOpenTimer) {
+			clearTimeout(autoOpenTimer);
+			autoOpenTimer = undefined;
+		}
+	}));
 
 	context.subscriptions.push(
 		vscode.commands.registerCommand('openmlAssistant.openChat', async () => {
-			await provider.show();
+			await withAssistant(context, async ({ provider }) => {
+				await provider.show();
+			});
 		}),
 		vscode.commands.registerCommand('openmlAssistant.editWithPreview', async () => {
 			const editor = vscode.window.activeTextEditor;
@@ -62,7 +136,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 				return;
 			}
 
-			await provider.show(prompt, 'edit');
+			await withAssistant(context, async ({ provider }) => {
+				await provider.show(prompt, 'edit');
+			});
 		}),
 		vscode.commands.registerCommand('openmlAssistant.generatePlan', async () => {
 			const prompt = await vscode.window.showInputBox({
@@ -74,47 +150,55 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 				return;
 			}
 
-			await provider.show(prompt, 'plan');
+			await withAssistant(context, async ({ provider }) => {
+				await provider.show(prompt, 'plan');
+			});
 		}),
 		vscode.commands.registerCommand('openmlAssistant.selectProvider', async () => {
-			const current = getActiveProvider();
-			const selected = await vscode.window.showQuickPick(
-				providerOptions.map(item => ({
-					label: providerDisplayName(item),
-					description: item === current ? 'Current' : undefined,
-					provider: item
-				})),
-				{ placeHolder: 'Select the provider for OpenML Assistant' }
-			);
+			await withAssistant(context, async ({ modules, provider }) => {
+				const current = modules.providers.getActiveProvider();
+				const selected = await vscode.window.showQuickPick(
+					modules.providers.providerOptions.map(item => ({
+						label: modules.providers.providerDisplayName(item),
+						description: item === current ? 'Current' : undefined,
+						provider: item
+					})),
+					{ placeHolder: 'Select the provider for OpenML Assistant' }
+				);
 
-			if (!selected) {
-				return;
-			}
+				if (!selected) {
+					return;
+				}
 
-			await setActiveProvider(selected.provider);
-			await provider.refresh();
-			void vscode.window.showInformationMessage(`OpenML Assistant now uses ${selected.label}.`);
+				await modules.providers.setActiveProvider(selected.provider);
+				await provider.refresh();
+				void vscode.window.showInformationMessage(`OpenML Assistant now uses ${selected.label}.`);
+			});
 		}),
 		vscode.commands.registerCommand('openmlAssistant.openSettings', async () => {
 			await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:openml.openml-vibe-assistant openmlAssistant');
 		}),
 		vscode.commands.registerCommand('openmlAssistant.manageApiKeys', async () => {
-			const selected = await vscode.window.showQuickPick(remoteProviders, {
-				placeHolder: 'Choose the provider whose API key you want to store securely'
+			await withAssistant(context, async ({ modules }) => {
+				const selected = await vscode.window.showQuickPick(remoteProviders, {
+					placeHolder: 'Choose the provider whose API key you want to store securely'
+				});
+
+				if (!selected) {
+					return;
+				}
+
+				const saved = await modules.secrets.promptForProviderSecret(selected.provider);
+				if (saved) {
+					void vscode.window.showInformationMessage(`${selected.label} API key saved in SecretStorage.`);
+				}
 			});
-
-			if (!selected) {
-				return;
-			}
-
-			const saved = await promptForProviderSecret(selected.provider);
-			if (saved) {
-				void vscode.window.showInformationMessage(`${selected.label} API key saved in SecretStorage.`);
-			}
 		}),
 		vscode.commands.registerCommand('openmlAssistant.rebuildIndex', async () => {
-			const chunks = await rebuildSemanticIndex();
-			void vscode.window.showInformationMessage(`OpenML Assistant rebuilt the semantic index with ${chunks} chunks.`);
+			await withAssistant(context, async ({ modules }) => {
+				const chunks = await modules.context.rebuildSemanticIndex();
+				void vscode.window.showInformationMessage(`OpenML Assistant rebuilt the semantic index with ${chunks} chunks.`);
+			});
 		}),
 		vscode.commands.registerCommand('openmlAssistant.rememberProjectNote', async () => {
 			const note = await vscode.window.showInputBox({
@@ -126,8 +210,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 				return;
 			}
 
-			await rememberProjectNote(note);
-			void vscode.window.showInformationMessage('OpenML Assistant saved the project memory note.');
+			await withAssistant(context, async ({ modules }) => {
+				await modules.memory.rememberProjectNote(note);
+				void vscode.window.showInformationMessage('OpenML Assistant saved the project memory note.');
+			});
 		}),
 		vscode.commands.registerCommand('openmlAssistant.addWorkspaceRule', async () => {
 			const rule = await vscode.window.showInputBox({
@@ -139,20 +225,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 				return;
 			}
 
-			await addWorkspaceRule(rule);
-			void vscode.window.showInformationMessage('OpenML Assistant saved the workspace rule.');
+			await withAssistant(context, async ({ modules }) => {
+				await modules.memory.addWorkspaceRule(rule);
+				void vscode.window.showInformationMessage('OpenML Assistant saved the workspace rule.');
+			});
 		}),
 		vscode.workspace.onDidChangeWorkspaceFolders(() => {
 			scheduleAutoOpen(150);
 		})
 	);
 
-	scheduleAutoOpen();
-
-	void rebuildSemanticIndex().then(chunks => {
-		void provider.refresh();
+	// Start loading in the background so the view is ready on startup, but keep
+	// command registration independent from any heavy module import failures.
+	void withAssistant(context, async ({ modules, provider }) => {
+		const chunks = await modules.context.rebuildSemanticIndex();
+		await provider.refresh();
 		void vscode.window.setStatusBarMessage(`OpenML Assistant indexed ${chunks} chunks for deep context.`, 4000);
-	}, () => undefined);
+	});
+
+	scheduleAutoOpen();
 }
 
 export function deactivate(): void {}

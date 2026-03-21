@@ -9,6 +9,26 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $codeRoot = Join-Path $repoRoot 'apps\code-oss'
 $bundleDir = Join-Path $repoRoot "apps\VSCode-win32-$Arch"
+$ripgrepPackageDir = Join-Path $codeRoot 'node_modules\@vscode\ripgrep'
+$ripgrepBinDir = Join-Path $ripgrepPackageDir 'bin'
+$ripgrepExe = Join-Path $ripgrepBinDir 'rg.exe'
+$nativeModules = @(
+    @{
+        Package = '@vscode\spdlog'
+        Binary = 'build\Release\spdlog.node'
+        RebuildArg = '@vscode/spdlog'
+    },
+    @{
+        Package = '@vscode\windows-mutex'
+        Binary = 'build\Release\CreateMutex.node'
+        RebuildArg = '@vscode/windows-mutex'
+    },
+    @{
+        Package = '@vscode\sqlite3'
+        Binary = 'build\Release\vscode-sqlite3.node'
+        RebuildArg = '@vscode/sqlite3'
+    }
+)
 
 if (-not $env:BUILD_SOURCEVERSION) {
     try {
@@ -60,8 +80,49 @@ function Invoke-Step {
     }
 }
 
+function Ensure-RipgrepBinary {
+    if (Test-Path $ripgrepExe) {
+        Write-Host "[OpenML Code] ripgrep binary detected at $ripgrepExe"
+        return
+    }
+
+    if (-not (Test-Path $ripgrepPackageDir)) {
+        throw "Missing @vscode/ripgrep package at $ripgrepPackageDir"
+    }
+
+    $rgCommand = Get-Command rg.exe -ErrorAction SilentlyContinue
+    if (-not $rgCommand) {
+        throw "Could not locate rg.exe in PATH and $ripgrepExe does not exist."
+    }
+
+    New-Item -ItemType Directory -Force -Path $ripgrepBinDir | Out-Null
+    Copy-Item -Path $rgCommand.Source -Destination $ripgrepExe -Force
+    Write-Host "[OpenML Code] ripgrep binary copied from $($rgCommand.Source) to $ripgrepExe"
+}
+
+function Ensure-NativeWindowsModules {
+    foreach ($module in $nativeModules) {
+        $packageDir = Join-Path $codeRoot ("node_modules\" + $module.Package)
+        $binaryPath = Join-Path $packageDir $module.Binary
+
+        if (Test-Path $binaryPath) {
+            Write-Host "[OpenML Code] native module ready: $binaryPath"
+            continue
+        }
+
+        Write-Host "[OpenML Code] rebuilding native module $($module.RebuildArg)..."
+        Invoke-Step "Rebuilding $($module.RebuildArg)..." @('npm.cmd', 'rebuild', $module.RebuildArg, '--foreground-scripts')
+
+        if (-not (Test-Path $binaryPath)) {
+            throw "Native module rebuild completed but binary is still missing: $binaryPath"
+        }
+    }
+}
+
 Push-Location $codeRoot
 try {
+    Ensure-RipgrepBinary
+    Ensure-NativeWindowsModules
     Invoke-Step 'Compiling sources...' @('npm.cmd', 'run', 'compile')
     Invoke-Step "Packaging win32 bundle for $Arch..." @('npm.cmd', 'run', 'gulp', '--', "vscode-win32-$Arch")
 

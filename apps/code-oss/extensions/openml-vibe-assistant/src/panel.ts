@@ -14,6 +14,7 @@ import {
 	syncLocalModelSelection,
 	cancelActiveProviderRequest,
 	isAbortError,
+	isTimeoutError,
 	type AssistantMode,
 	type ProviderId
 } from './providers';
@@ -69,6 +70,15 @@ type FixLoopState = {
 	attempt: number;
 };
 
+function createWebviewNonce(): string {
+	const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	let nonce = '';
+	for (let index = 0; index < 32; index += 1) {
+		nonce += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+	}
+	return nonce;
+}
+
 export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
 	static readonly viewId = 'openmlAssistant.chatView';
 
@@ -96,8 +106,6 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 
 	async resolveWebviewView(webviewView: vscode.WebviewView): Promise<void> {
 		this.webviewView = webviewView;
-		const markdownItUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', '..', 'node_modules', 'markdown-it', 'dist', 'markdown-it.min.js'));
-		const highlightJsUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'node_modules', 'highlight.js', 'es', 'index.js'));
 		const highlightCssUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'media', 'highlight.css'));
 		webviewView.webview.options = {
 			enableScripts: true,
@@ -108,7 +116,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				vscode.Uri.joinPath(this.extensionUri, '..', 'markdown-language-features', 'media')
 			]
 		};
-		webviewView.webview.html = this.getHtml(markdownItUri, highlightJsUri, highlightCssUri);
+		webviewView.webview.html = this.getHtml(webviewView.webview, highlightCssUri);
 
 		webviewView.webview.onDidReceiveMessage(message => {
 			void this.onMessage(message as WebviewInboundMessage);
@@ -454,7 +462,13 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			await this.writeProjectArtifacts(trimmedPrompt, assistantMessage.content, requestMode, interactionKind);
 		} catch (error) {
 			const text = error instanceof Error ? error.message : String(error);
-			if (isAbortError(error)) {
+			if (isTimeoutError(error)) {
+				assistantMessage.content = 'La solicitud al proveedor excedio el tiempo de espera configurado. Aumenta el timeout o usa un modelo mas rapido para esta tarea.';
+				this.lastEditProposal = undefined;
+				this.lastAssistantResponse = assistantMessage.content;
+				await this.persistProjectHistory();
+				this.postMessage({ type: 'error', message: text });
+			} else if (isAbortError(error)) {
 				assistantMessage.content = 'La ejecucion fue cancelada por el usuario.';
 				this.lastEditProposal = undefined;
 				this.lastAssistantResponse = assistantMessage.content;
@@ -616,7 +630,8 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		void this.webviewView.webview.postMessage(message);
 	}
 
-	private getHtml(markdownItUri: vscode.Uri, highlightJsUri: vscode.Uri, highlightCssUri: vscode.Uri): string {
+	private getHtml(webview: vscode.Webview, highlightCssUri: vscode.Uri): string {
+		const nonce = createWebviewNonce();
 		const providerOptionsMarkup = providerOptions.map(provider => `<option value="${provider}">${providerDisplayName(provider)}</option>`).join('');
 		const modeButtonsMarkup = assistantModes.map(mode => `<button type="button" class="mode-button" data-mode="${mode}">${mode}</button>`).join('');
 
@@ -626,8 +641,9 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>OpenML Assistant</title>
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data: https:; style-src ${webview.cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}'; font-src ${webview.cspSource};" />
 	<link rel="stylesheet" href="${highlightCssUri}" />
-	<style>
+	<style nonce="${nonce}">
 		:root {
 			color-scheme: dark;
 			--bg: transparent;
@@ -977,17 +993,10 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		</section>
 	</div>
 
-	<script src="${markdownItUri}"></script>
-	<script type="module">
-		(async () => {
+	<script nonce="${nonce}">
+		(() => {
 		const vscode = acquireVsCodeApi();
-		let hljs = undefined;
-		try {
-			const highlightModule = await import("${highlightJsUri}");
-			hljs = highlightModule.default;
-		} catch (error) {
-			console.warn('OpenML Assistant could not load highlight.js. Falling back to plain code blocks.', error);
-		}
+		const hljs = undefined;
 
 		const messages = document.getElementById('messages');
 		const providerSelect = document.getElementById('providerSelect');
@@ -1046,84 +1055,311 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			return escapeHtml(value).replaceAll("'", '&#39;');
 		}
 
-		function createMarkdownRenderer() {
-			const markdown = window.markdownit({
-				html: false,
-				linkify: true,
-				breaks: true,
-				highlight(value, lang) {
-					const normalizedLang = normalizeHighlightLang(lang);
-					if (hljs) {
-						try {
-							if (normalizedLang && hljs.getLanguage(normalizedLang)) {
-								return hljs.highlight(value, {
-									language: normalizedLang,
-									ignoreIllegals: true
-								}).value;
-							}
-							return hljs.highlightAuto(value).value;
-						} catch {
-							// Fall through to escaped plain text.
+		function renderInlineMarkdown(value) {
+			const source = value || '';
+			let html = '';
+			let index = 0;
+			let inCode = false;
+			let inStrong = false;
+			let inEmphasis = false;
+			const inlineCodeToken = String.fromCharCode(96);
+
+			function appendText(text) {
+				html += escapeHtml(text);
+			}
+
+			while (index < source.length) {
+				if (source.startsWith('<br>', index)) {
+					html += '<br>';
+					index += 4;
+					continue;
+				}
+
+				if (!inCode && source.startsWith('**', index)) {
+					html += inStrong ? '</strong>' : '<strong>';
+					inStrong = !inStrong;
+					index += 2;
+					continue;
+				}
+
+				const current = source[index];
+
+				if (current === inlineCodeToken) {
+					html += inCode ? '</code>' : '<code>';
+					inCode = !inCode;
+					index += 1;
+					continue;
+				}
+
+				if (!inCode && (current === '*' || current === '_')) {
+					html += inEmphasis ? '</em>' : '<em>';
+					inEmphasis = !inEmphasis;
+					index += 1;
+					continue;
+				}
+
+				if (!inCode && current === '[') {
+					const labelEnd = source.indexOf(']', index + 1);
+					const urlStart = labelEnd >= 0 ? source.indexOf('(', labelEnd + 1) : -1;
+					const urlEnd = urlStart >= 0 ? source.indexOf(')', urlStart + 1) : -1;
+					if (labelEnd >= 0 && urlStart === labelEnd + 1 && urlEnd > urlStart) {
+						const label = source.slice(index + 1, labelEnd);
+						const href = source.slice(urlStart + 1, urlEnd).trim();
+						const safeHref = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') ? href : '';
+						if (safeHref) {
+							html += '<a href="' + escapeAttribute(safeHref) + '">' + renderInlineMarkdown(label) + '</a>';
+							index = urlEnd + 1;
+							continue;
 						}
 					}
-					return markdown.utils.escapeHtml(value);
-				}
-			});
-
-			const defaultFenceRenderer = markdown.renderer.rules.fence ?? ((tokens, index, options, _env, self) => self.renderToken(tokens, index, options));
-			markdown.renderer.rules.fence = (tokens, index, options, env, self) => {
-				const token = tokens[index];
-				const info = markdown.utils.unescapeAll(token.info || '').trim();
-				const langName = info.split(/\\s+/g)[0] || '';
-				const normalizedLang = normalizeHighlightLang(langName);
-				let codeHtml = '';
-				let codeClass = normalizedLang ? 'hljs language-' + normalizedLang : 'hljs';
-
-				if (hljs) {
-					try {
-						if (normalizedLang && hljs.getLanguage(normalizedLang)) {
-							codeHtml = hljs.highlight(token.content, {
-								language: normalizedLang,
-								ignoreIllegals: true
-							}).value;
-						} else {
-							codeHtml = hljs.highlightAuto(token.content).value;
-						}
-					} catch {
-						codeHtml = markdown.utils.escapeHtml(token.content);
-						codeClass = normalizedLang ? 'language-' + normalizedLang : '';
-					}
-				} else {
-					codeHtml = markdown.utils.escapeHtml(token.content);
-					codeClass = normalizedLang ? 'language-' + normalizedLang : '';
 				}
 
-				const languageLabel = langName || 'Code';
-				const renderedPre = '<pre><code class="' + escapeAttribute(codeClass) + '">' + codeHtml + '</code></pre>';
-				if (!token.content.trim()) {
-					return defaultFenceRenderer(tokens, index, options, env, self);
-				}
+				appendText(current);
+				index += 1;
+			}
 
-				return '<div class="code-block">' +
-					'<div class="code-block-header">' +
-					'<span class="code-block-language">' + escapeHtml(languageLabel) + '</span>' +
-					'<button type="button" class="code-copy-button" data-copy-code>Copy</button>' +
-					'</div>' +
-					renderedPre +
-					'</div>';
-			};
+			if (inCode) {
+				html += '</code>';
+			}
+			if (inStrong) {
+				html += '</strong>';
+			}
+			if (inEmphasis) {
+				html += '</em>';
+			}
 
-			return markdown;
+			return html;
 		}
 
-		const md = createMarkdownRenderer();
+		function renderCodeBlock(content, langName) {
+			const normalizedLang = normalizeHighlightLang(langName);
+			let codeHtml = '';
+			let codeClass = normalizedLang ? 'language-' + normalizedLang : '';
+
+			if (hljs) {
+				try {
+					if (normalizedLang && hljs.getLanguage(normalizedLang)) {
+						codeHtml = hljs.highlight(content, {
+							language: normalizedLang,
+							ignoreIllegals: true
+						}).value;
+						codeClass = 'hljs language-' + normalizedLang;
+					} else {
+						codeHtml = hljs.highlightAuto(content).value;
+						codeClass = 'hljs';
+					}
+				} catch {
+					codeHtml = escapeHtml(content);
+				}
+			} else {
+				codeHtml = escapeHtml(content);
+			}
+
+			const languageLabel = langName || 'Code';
+			return '<div class="code-block">' +
+				'<div class="code-block-header">' +
+				'<span class="code-block-language">' + escapeHtml(languageLabel) + '</span>' +
+				'<button type="button" class="code-copy-button" data-copy-code>Copy</button>' +
+				'</div>' +
+				'<pre><code class="' + escapeAttribute(codeClass) + '">' + codeHtml + '</code></pre>' +
+				'</div>';
+		}
+
+		function renderFallbackMarkdown(value) {
+			const source = (value || '').split('\\r\\n').join('\\n').split('\\r').join('\\n');
+			const lines = source.split('\\n');
+			const html = [];
+			let i = 0;
+			const fenceToken = String.fromCharCode(96).repeat(3);
+
+			function isFence(text) {
+				return typeof text === 'string' && text.trimStart().startsWith(fenceToken);
+			}
+
+			function getFenceLanguage(text) {
+				const trimmed = (text || '').trim();
+				return trimmed.startsWith(fenceToken) ? trimmed.slice(fenceToken.length).trim() : '';
+			}
+
+			function isTableRow(text) {
+				const trimmed = (text || '').trim();
+				return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length >= 2;
+			}
+
+			function isTableSeparator(text) {
+				const trimmed = (text || '').trim();
+				if (!trimmed || !trimmed.includes('|')) {
+					return false;
+				}
+
+				for (const char of trimmed) {
+					if (!['|', '-', ':', ' '].includes(char)) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			function getHeadingLevel(text) {
+				const trimmed = (text || '').trimStart();
+				let level = 0;
+				while (level < trimmed.length && trimmed[level] === '#') {
+					level += 1;
+				}
+				if (level === 0 || level > 4 || trimmed[level] !== ' ') {
+					return 0;
+				}
+				return level;
+			}
+
+			function isHorizontalRule(text) {
+				const trimmed = (text || '').trim();
+				if (trimmed.length < 3) {
+					return false;
+				}
+
+				const marker = trimmed[0];
+				if (marker !== '-' && marker !== '*') {
+					return false;
+				}
+
+				for (const char of trimmed) {
+					if (char !== marker) {
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			function getOrderedItemText(text) {
+				const trimmed = (text || '').trimStart();
+				let cursor = 0;
+				while (cursor < trimmed.length && trimmed[cursor] >= '0' && trimmed[cursor] <= '9') {
+					cursor += 1;
+				}
+				if (cursor === 0 || trimmed.slice(cursor, cursor + 2) !== '. ') {
+					return undefined;
+				}
+				return trimmed.slice(cursor + 2);
+			}
+
+			while (i < lines.length) {
+				const line = lines[i];
+				if (isFence(line)) {
+					const langName = getFenceLanguage(line);
+					i += 1;
+					const codeLines = [];
+					while (i < lines.length && !isFence(lines[i])) {
+						codeLines.push(lines[i]);
+						i += 1;
+					}
+					html.push(renderCodeBlock(codeLines.join('\\n'), langName));
+					i += 1;
+					continue;
+				}
+
+				if (isTableRow(line) && i + 1 < lines.length && isTableSeparator(lines[i + 1])) {
+					const headerCells = line.split('|').slice(1, -1).map(cell => cell.trim());
+					i += 2;
+					const bodyRows = [];
+					while (i < lines.length && isTableRow(lines[i])) {
+						bodyRows.push(lines[i].split('|').slice(1, -1).map(cell => cell.trim()));
+						i += 1;
+					}
+
+					html.push('<table><thead><tr>' +
+						headerCells.map(cell => '<th>' + renderInlineMarkdown(cell) + '</th>').join('') +
+						'</tr></thead><tbody>' +
+						bodyRows.map(row => '<tr>' + row.map(cell => '<td>' + renderInlineMarkdown(cell) + '</td>').join('') + '</tr>').join('') +
+						'</tbody></table>');
+					continue;
+				}
+
+				if (isHorizontalRule(line)) {
+					html.push('<hr>');
+					i += 1;
+					continue;
+				}
+
+				const headingLevel = getHeadingLevel(line);
+				if (headingLevel > 0) {
+					const headingText = line.trimStart().slice(headingLevel + 1);
+					html.push('<h' + headingLevel + '>' + renderInlineMarkdown(headingText) + '</h' + headingLevel + '>');
+					i += 1;
+					continue;
+				}
+
+				if (!line.trim()) {
+					i += 1;
+					continue;
+				}
+
+				if (line.startsWith('- ') || line.startsWith('* ')) {
+					const items = [];
+					while (i < lines.length && (lines[i].startsWith('- ') || lines[i].startsWith('* '))) {
+						items.push(lines[i].slice(2));
+						i += 1;
+					}
+					html.push('<ul>' + items.map(item => '<li>' + renderInlineMarkdown(item) + '</li>').join('') + '</ul>');
+					continue;
+				}
+
+				const orderedItem = getOrderedItemText(line);
+				if (orderedItem !== undefined) {
+					const items = [];
+					while (i < lines.length) {
+						const item = getOrderedItemText(lines[i]);
+						if (item === undefined) {
+							break;
+						}
+						items.push(item);
+						i += 1;
+					}
+					html.push('<ol>' + items.map(item => '<li>' + renderInlineMarkdown(item) + '</li>').join('') + '</ol>');
+					continue;
+				}
+
+				if (line.trimStart().startsWith('> ')) {
+					const quoteLines = [];
+					while (i < lines.length && lines[i].trimStart().startsWith('> ')) {
+						quoteLines.push(lines[i].trimStart().slice(2));
+						i += 1;
+					}
+					html.push('<blockquote>' + renderInlineMarkdown(quoteLines.join('<br>')) + '</blockquote>');
+					continue;
+				}
+
+				const paragraph = [];
+				while (
+					i < lines.length &&
+					lines[i].trim() &&
+					!isFence(lines[i]) &&
+					!isTableRow(lines[i]) &&
+					!isHorizontalRule(lines[i]) &&
+					getHeadingLevel(lines[i]) === 0 &&
+					getOrderedItemText(lines[i]) === undefined &&
+					!lines[i].trimStart().startsWith('> ') &&
+					!lines[i].startsWith('- ') &&
+					!lines[i].startsWith('* ')
+				) {
+					paragraph.push(lines[i]);
+					i += 1;
+				}
+
+				html.push('<p>' + renderInlineMarkdown(paragraph.join('<br>')) + '</p>');
+			}
+
+			return html.join('');
+		}
 
 		function closeMenu() {
 			contextMenu.classList.add('hidden');
 		}
 
 		function renderMarkdown(value) {
-			return md.render(value || '');
+			return renderFallbackMarkdown(value || '');
 		}
 
 		function renderMessages(items) {
@@ -1148,6 +1384,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		}
 
 		let currentBusy = false;
+		setMode('agent');
 
 		function setBusy(isBusy) {
 			currentBusy = isBusy;

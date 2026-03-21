@@ -13,7 +13,8 @@
   },
   "contributes": {
     "configurationDefaults": {
-      "workbench.colorTheme": "OpenML Prussian Blue"
+      "workbench.colorTheme": "OpenML Prussian Blue",
+      "workbench.startupEditor": "welcomePage"
     },
     "themes": [
       {
