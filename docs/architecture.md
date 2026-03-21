@@ -89,13 +89,20 @@ Responsabilidad:
 - runbook operativo en `docs/distribution.md`
 - bundle local inicial de observabilidad via `collect-observability.ps1`
 - empaquetado Win32 validado con bundle `OMLCode.exe` e instalador `OpenMLCodeSetup.exe`
+- splash y welcome page alineados con branding de `OpenML Code`
+- menu `Help` ajustado para distribucion propia sin `Report Issue`
 
 ### Tooling y build
 
 - `pnpm`
+- `Node.js 22.22.x`
 - TypeScript
 - Gulp del repo de VS Code para compilar extensiones builtin
 - PowerShell y `npm.cmd` en Windows
+- `Visual Studio 2022` o `Build Tools 2022` con workload de C++
+- `MSVC v143`
+- `Windows SDK`
+- `Python 3` para `node-gyp` y reconstruccion de modulos nativos
 
 ### Backend futuro
 
@@ -256,6 +263,7 @@ El producto actual ya cubre:
 - proveedor `Azure Foundry`
 - UI con `Run Again` y cancelacion en curso
 - release Win32 validado de punta a punta
+- tema por defecto `OpenML Prussian Blue` aplicado tambien en instalaciones nuevas
 
 Todavia no cubre:
 

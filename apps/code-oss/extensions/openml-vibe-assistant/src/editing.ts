@@ -1,15 +1,4 @@
 ﻿import * as vscode from 'vscode';
-const { createTwoFilesPatch } = require('diff') as {
-	createTwoFilesPatch: (
-		oldFileName: string,
-		newFileName: string,
-		oldStr: string,
-		newStr: string,
-		oldHeader?: string,
-		newHeader?: string,
-		options?: { context?: number }
-	) => string;
-};
 
 export type EditProposalFile = {
 	path: string;
@@ -191,16 +180,37 @@ function ensureTrailingNewline(value: string): string {
 	return value.endsWith('\n') ? value : `${value}\n`;
 }
 
+function splitLines(value: string): string[] {
+	return ensureTrailingNewline(value).split('\n').slice(0, -1);
+}
+
+function buildHunkRange(start: number, count: number): string {
+	if (count === 0) {
+		return `${start},0`;
+	}
+
+	return count === 1 ? `${start}` : `${start},${count}`;
+}
+
 function createFilePatch(filePath: string, before: string, after: string): string {
-	return createTwoFilesPatch(
-		filePath,
-		filePath,
-		ensureTrailingNewline(before),
-		ensureTrailingNewline(after),
-		'workspace',
-		'proposal',
-		{ context: 3 }
-	);
+	const beforeLines = splitLines(before);
+	const afterLines = splitLines(after);
+
+	const lines: string[] = [
+		`--- ${filePath}\tworkspace`,
+		`+++ ${filePath}\tproposal`,
+		`@@ -${buildHunkRange(1, beforeLines.length)} +${buildHunkRange(1, afterLines.length)} @@`
+	];
+
+	for (const line of beforeLines) {
+		lines.push(`-${line}`);
+	}
+
+	for (const line of afterLines) {
+		lines.push(`+${line}`);
+	}
+
+	return lines.join('\n');
 }
 
 export function buildUserFacingEditSummary(proposal: EditProposal): string {

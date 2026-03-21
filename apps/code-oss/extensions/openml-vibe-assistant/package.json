@@ -22,6 +22,7 @@
     "onCommand:openmlAssistant.generatePlan",
     "onCommand:openmlAssistant.selectProvider",
     "onCommand:openmlAssistant.openSettings",
+    "onCommand:openmlAssistant.manageApiKeys",
     "onView:openmlAssistant.chatView",
     "onCommand:openmlAssistant.rebuildIndex",
     "onCommand:openmlAssistant.rememberProjectNote",
@@ -83,6 +84,11 @@
         "category": "OpenML Assistant"
       },
       {
+        "command": "openmlAssistant.manageApiKeys",
+        "title": "Manage API Keys",
+        "category": "OpenML Assistant"
+      },
+      {
         "title": "Rebuild Semantic Index",
         "command": "openmlAssistant.rebuildIndex",
         "category": "OpenML Assistant"
@@ -124,7 +130,7 @@
         },
         "openmlAssistant.requestTimeoutMs": {
           "type": "number",
-          "default": 240000,
+          "default": 300000,
           "minimum": 1000,
           "markdownDescription": "Timeout en milisegundos para llamadas al proveedor del modelo.",
           "scope": "application"
@@ -143,7 +149,7 @@
         },
         "openmlAssistant.ollama.maxOutputTokens": {
           "type": "number",
-          "default": 11469,
+          "default": 28000,
           "minimum": 512,
           "markdownDescription": "Maximo de tokens de salida solicitados a Ollama para respuestas largas y propuestas editables multiarchivo.",
           "scope": "application"
@@ -162,7 +168,7 @@
         },
         "openmlAssistant.lmStudio.maxOutputTokens": {
           "type": "number",
-          "default": 11469,
+          "default": 28000,
           "minimum": 512,
           "markdownDescription": "Maximo de tokens de salida solicitados a LM Studio para respuestas largas y propuestas editables multiarchivo.",
           "scope": "application"
@@ -187,7 +193,7 @@
         },
         "openmlAssistant.openai.maxOutputTokens": {
           "type": "number",
-          "default": 11469,
+          "default": 28000,
           "minimum": 512,
           "markdownDescription": "Maximo de tokens de salida solicitados a OpenAI para respuestas largas y propuestas editables multiarchivo.",
           "scope": "application"
@@ -254,7 +260,7 @@
         },
         "openmlAssistant.openRouter.maxOutputTokens": {
           "type": "number",
-          "default": 11469,
+          "default": 28000,
           "minimum": 512,
           "markdownDescription": "Maximo de tokens de salida solicitados a OpenRouter para respuestas largas y propuestas editables multiarchivo.",
           "scope": "application"
@@ -274,14 +280,14 @@
         },
         "openmlAssistant.gemini.maxOutputTokens": {
           "type": "number",
-          "default": 22938,
+          "default": 28000,
           "minimum": 512,
           "markdownDescription": "Maximo de tokens de salida solicitados a Gemini para respuestas largas, incluyendo propuestas editables multiarchivo. Si el proveedor sigue truncando, aumenta este valor manualmente.",
           "scope": "application"
         },
         "openmlAssistant.anthropic.maxOutputTokens": {
           "type": "number",
-          "default": 11469,
+          "default": 28000,
           "minimum": 512,
           "markdownDescription": "Maximo de tokens de salida solicitados a Anthropic para respuestas largas, incluyendo propuestas editables multiarchivo.",
           "scope": "application"
@@ -316,7 +322,7 @@
         },
         "openmlAssistant.azureFoundry.maxOutputTokens": {
           "type": "number",
-          "default": 11469,
+          "default": 28000,
           "minimum": 256,
           "markdownDescription": "Maximo de tokens de salida solicitados a Azure Foundry para respuestas largas y propuestas editables multiarchivo.",
           "scope": "application"

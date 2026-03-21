@@ -85,6 +85,9 @@ Estado: completada en su primera version funcional
 - telemetria y observabilidad base
 - branding de binarios de Windows
 - release Win32 validado end-to-end
+- splash y welcome page de produccion alineados con `OpenML Code`
+- tema `OpenML Prussian Blue` aplicado por defecto en instalaciones nuevas
+- remocion de `Report Issue` del menu `Help` en la distribucion propia
 
 Entregable: producto instalable con una primera base operativa de distribucion.
 

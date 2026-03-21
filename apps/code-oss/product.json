@@ -30,7 +30,7 @@
 	"darwinProfilePayloadUUID": "4B2D9B6A-12A4-4A55-A693-F0862A0A3F11",
 	"linuxIconName": "openml-code",
 	"licenseFileName": "LICENSE.txt",
-	"reportIssueUrl": "https://github.com/microsoft/vscode/issues/new",
+	"reportIssueUrl": "",
 	"nodejsRepository": "https://nodejs.org",
 	"urlProtocol": "openml-code",
 	"webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/",

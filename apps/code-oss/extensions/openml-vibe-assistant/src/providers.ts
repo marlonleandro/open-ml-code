@@ -5,11 +5,11 @@ import { getProviderSecret } from './secrets';
 export type ProviderId = 'ollama' | 'lmstudio' | 'openai' | 'gemini' | 'anthropic' | 'openrouter' | 'azurefoundry';
 export type AssistantMode = 'agent' | 'ask' | 'edit' | 'plan';
 
-const DEFAULT_REQUEST_TIMEOUT_MS = 240000;
-const DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS = 11469;
-const DEFAULT_GEMINI_MAX_OUTPUT_TOKENS = 22938;
-const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS = 11469;
-const DEFAULT_AZURE_FOUNDRY_MAX_OUTPUT_TOKENS = 11469;
+const DEFAULT_REQUEST_TIMEOUT_MS = 300000;
+const DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS = 28000;
+const DEFAULT_GEMINI_MAX_OUTPUT_TOKENS = 28000;
+const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS = 28000;
+const DEFAULT_AZURE_FOUNDRY_MAX_OUTPUT_TOKENS = 28000;
 
 export interface WorkspacePrompt {
 	prompt: string;
@@ -63,8 +63,16 @@ export function cancelActiveProviderRequest(): void {
 	activeRequestController?.abort();
 }
 
+export function isTimeoutError(error: unknown): boolean {
+	if (!(error instanceof Error)) {
+		return false;
+	}
+
+	return error.name === 'TimeoutError' || /timed?\s*out|timeout/i.test(error.message);
+}
+
 export function isAbortError(error: unknown): boolean {
-	return error instanceof Error && (error.name === 'AbortError' || /aborted|cancelled|canceled/i.test(error.message));
+	return error instanceof Error && error.name === 'AbortError';
 }
 
 function requireValue(value: string, label: string): string {

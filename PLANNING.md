@@ -41,6 +41,8 @@ La estrategia sigue siendo de dos capas:
 - el launcher `./scripts/code.bat` funciona para abrir el IDE y validar version
 - el branding tecnico principal esta aplicado en el fork
 - el tema por defecto ya usa la paleta `Prussian Blue`
+- el splash y la welcome page ya reflejan branding propio de `OpenML Code`
+- el menu `Help` de la distribucion propia ya no expone `Report Issue`
 
 ### Versionado
 
@@ -189,6 +191,7 @@ Validaciones completadas:
 - `scripts/release/package-win32.ps1 -Arch x64 -Target user`: OK
 - bundle Win32 generado en `apps/VSCode-win32-x64`: OK
 - instalador Win32 generado en `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`: OK
+- pipeline Win32 endurecido para incluir `rg.exe` y binarios nativos requeridos por el runtime: OK
 
 ## 9. Roadmap actualizado
 
@@ -234,3 +237,4 @@ Estado: completada en su primera base operativa, con Windows validado
 - algunos modelos siguen siendo inconsistentes devolviendo propuestas editables estructuradas
 - los catalogos remotos de modelos pueden incluir ids no deseados; hoy el listado de `OpenAI` ya se filtra a familias utiles para chat/coding
 - cuando GitHub detecte secretos expuestos, ademas del fix en codigo se debe rotar o revocar la credencial real
+- para mantener builds reproducibles en Windows hacen falta `Node.js 22.22.x`, `Visual Studio 2022` con C++, `Windows SDK` y `Python 3`

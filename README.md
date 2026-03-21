@@ -8,6 +8,7 @@
 
 - editor funcional construido sobre `Code - OSS`
 - tema por defecto `OpenML Prussian Blue`
+- splash y welcome page con branding de `OpenML Code`
 - ejecutable Windows `OMLCode.exe`
 - instalador Windows `OpenMLCodeSetup.exe`
 - chat propio `OpenML Assistant` en la barra lateral derecha
@@ -139,7 +140,7 @@ Para una ayuda mas amplia y conversacional dentro del proyecto.
 Ejemplo:
 
 ```text
-Analiza este modulo, identifica el siguiente paso y propon la mejor forma de implementarlo.
+Crear una aplicación web en React para recepción de facturas. Genera una arquitectura limpia utilizando las mejores prácticas de desarrollo web. La aplicación debe mostrar la lista de facturas creadas permitiendo ver el detalle y editar los datos. Además, se debe permitir crear una nueva factura. Utiliza un estilo modelo enfocado a una mejor experiencia de usuario tanto en desktop como mobile.
 ```
 
 ## Flujo de edicion asistida
@@ -176,6 +177,15 @@ Puedes escribir comandos directos en el chat:
 - `/context <query>`: construye contexto profundo relevante para una consulta
 - `/reindex`: reconstruye el indice semantico ligero
 
+## Modelos Sugeridos
+
+- Local (LM Studio / Ollama): `Qwen3-Coder`, `GML-4.6`, `gpt-oss-20b`
+- OpenAI: `gpt-5.4`, `gpt-5.3-codex`
+- Gemini:  `gemini-2.5-pro`, `gemini-3-flash`
+- Anthropic: `claude-sonet-4-5-20250929`, `claude-opus-4-6`
+- OpenRouter: `minimax/minimax-m2.7`, `z-ai/glm-5-turbo`
+- Azure Foundry: `gpt-5.3-codex`, `gpt-5.4`
+
 ## Distribucion
 
 ### Generar el instalador de Windows
@@ -200,9 +210,33 @@ pnpm run release:darwin
 pnpm run release:observability
 ```
 
+## Requisitos para actualizar o compilar el proyecto
+
+Para modificar, compilar, depurar o publicar `OpenML Code` en Windows conviene tener este entorno listo:
+
+- `Windows 10` o `Windows 11` de 64 bits
+- `Node.js 22.22.x`
+- `npm` incluido con `Node.js 22.22.x`
+- `pnpm` disponible globalmente
+- `Git`
+- `PowerShell 5.1+` o `PowerShell 7+`
+- `Visual Studio 2022` o `Build Tools for Visual Studio 2022`
+- workload `Desktop development with C++`
+- `MSVC v143`
+- `Windows SDK` reciente para Windows 10/11
+- `Python 3` en `PATH` para `node-gyp` y reconstruccion de modulos nativos
+
+Notas practicas:
+
+- el proyecto usa modulos nativos como `node-pty`, `@vscode/spdlog`, `@vscode/sqlite3` y `@vscode/windows-mutex`
+- para desarrollo diario suele bastar con `npm.cmd install`, `npm.cmd run compile` y `.\scripts\code.bat` dentro de `apps/code-oss`
+- para publicar el instalador Win32 se usa `.\scripts\release\package-win32.ps1` desde la raiz del repo
+- si faltan binarios como `rg.exe`, `spdlog.node` o `vscode-sqlite3.node`, el IDE puede arrancar incompleto o fallar en runtime
+
 ## Estado actual del proyecto
 
 - branding tecnico principal aplicado
+- splash y welcome page alineados con `OpenML Code`
 - `OpenML Assistant` builtin integrado
 - snippets del chat con resaltado de sintaxis y `Copy code`
 - edicion asistida funcional
@@ -213,6 +247,7 @@ pnpm run release:observability
 - proveedor `Azure Foundry` integrado con `Responses API`
 - listado remoto de modelos para `Anthropic` y `OpenAI`
 - distribucion Windows validada end-to-end
+- menu `Help` ajustado para distribucion propia sin `Report Issue`
 - ejecutable Windows unificado como `OMLCode.exe`
 - instalador Windows unificado como `OpenMLCodeSetup.exe`
 - correccion aplicada para evitar un secreto real en tests del repo
@@ -233,5 +268,6 @@ pnpm run release:observability
 
 ## Donaciones
 
-- **Yape** => Numero de telefono +51985689885
+- **PayPal** => Cuenta malulex@gmail.com
 - **Zinli** => Nro. de cuenta 4-013-88068677-16
+- **Yape** => Numero de telefono +51985689885
