@@ -3,25 +3,40 @@
 ## Prompt 1:
 
 ```
-Crear un proyecto web en React que se utilice como una aplicación de recepción de facturas. Genera una arquitectura limpia utilizando las mejores prácticas. La aplicación debe mostrar una lista de facturas creadas que permita ver el detalle y editar los datos. Además, se debe permitir crear una nueva factura. Utiliza un estilo modelo enfocado a una mejor experiencia de usuario tanto en desktop como mobile.
+Crear una aplicación web en React para la recepción de facturas.
+- Genera una arquitectura limpia utilizando las mejores prácticas.
+- La aplicación debe mostrar una lista de facturas creadas que permita ver el detalle y editar los datos.
+- Además, se debe permitir crear una nueva factura.
+- Utiliza un estilo modelo enfocado a una mejor experiencia de usuario tanto en desktop como mobile.
 ```
 
 ### Prompt 1.1:
 
 ```
-Agrega una página al proyecto que se utilice para registrar un nuevo proveedor y crea un menu superior para navegar entre páginas respetando el estilo actual. Utiliza los datos del formulario que se muestra en la imagen adjunta.
+Agrega una página al proyecto que se utilice para registrar un nuevo proveedor.
+- Crea/actualiza un menu superior para navegar entre páginas respetando el estilo actual.
+- Utiliza los datos del formulario que se muestra en la imagen adjunta.
 ```
 
 ## Prompt 2:
 
 ```
-Implementa la estructura de un panel de control (dashboard) moderno en Angular. Debes crear los siguientes componentes: un menú lateral de navegación responsivo (sidebar), una tabla de datos de usuarios que soporte paginación simulada y un área principal preparada para insertar gráficos. Crea un servicio con datos mockeados (nombres, roles, estados) y haz que la tabla consuma y renderice estos datos correctamente. Debes crear todos los archivos necesarios para poder ejecutar la aplicación sin problemas.
+Implementa la estructura de un panel de control (dashboard) moderno en Angular.
+Debes crear los siguientes componentes:
+- un menú lateral de navegación responsivo (sidebar)
+- una tabla de datos de usuarios que soporte paginación simulada
+- un área principal preparada para insertar gráficos.
+Crea un servicio con datos mockeados (nombres, roles, estados) y haz que la tabla consuma y renderice estos datos correctamente.
+Debes crear todos los archivos necesarios para poder ejecutar la aplicación sin problemas.
 ```
 
 ## Prompt 3:
 
 ```
-Crear un proyecto web en React con arquitectura limpia con la siguiente funcionalidad: registro de empresas proveedores de materiales y servicios, considerando que por cada empresa pueden existir mas de un contacto. Utiliza un estilo modelo enfocado a una mejor experiencia de usuario tanto en desktop como mobile.
+Crear un proyecto web en React con arquitectura limpia con la siguiente funcionalidad:
+- registro de empresas proveedores de materiales y servicios
+- considerar que por cada empresa pueden existir mas de un contacto
+- Utiliza un estilo modelo enfocado a una mejor experiencia de usuario tanto en desktop como mobile.
 ```
 
 ## Prompt 4:
