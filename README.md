@@ -301,7 +301,7 @@ Practical notes:
 ## Credits
 
 - Developed by: **Marlon Leandro**
-- Website: https://openmlcode.mycustomdevs.com/
+- Website: https://openmlcode.mycustomdevs.com
 - Email: marlonleandro@yahoo.com
 
 ## Donations
