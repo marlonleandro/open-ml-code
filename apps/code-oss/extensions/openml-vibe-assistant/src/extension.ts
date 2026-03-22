@@ -42,6 +42,12 @@ async function ensureAssistant(context: vscode.ExtensionContext): Promise<Assist
 			const modules = await loadModules();
 
 			try {
+				modules.context.initializeContextStorage(context.storageUri);
+			} catch (error) {
+				console.error('[OpenML Assistant] Failed to initialize semantic context storage.', error);
+			}
+
+			try {
 				modules.secrets.initializeSecretStorage(context.secrets, context.globalStorageUri);
 			} catch (error) {
 				console.error('[OpenML Assistant] Failed to initialize secret storage.', error);
