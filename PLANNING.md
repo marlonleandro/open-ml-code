@@ -1,61 +1,61 @@
 # OpenML Code Planning
 
-## 1. Objetivo del proyecto
+## 1. Project Goal
 
-Construir `OpenML Code`, un IDE propio basado en `Code - OSS`, con una experiencia AI `local-first`, mantenible en el tiempo y orientada a:
+Build `OpenML Code`, a custom IDE based on `Code - OSS`, with a maintainable `local-first` AI experience focused on:
 
-1. chat y asistencia contextual
-2. edicion asistida multiarchivo
-3. ejecucion controlada dentro del IDE
-4. contexto profundo de workspace
-5. distribucion real del producto
+1. contextual chat and assistance
+2. multi-file assisted editing
+3. controlled execution inside the IDE
+4. deep workspace context
+5. real product distribution
 
-La estrategia sigue siendo de dos capas:
+The strategy still follows two layers:
 
-1. una distribucion propia de `Code - OSS`
-2. una capa AI propia centrada en `openml-vibe-assistant`
+1. a custom `Code - OSS` distribution
+2. a custom AI layer centered on `openml-vibe-assistant`
 
-## 2. Decisiones clave
+## 2. Key Decisions
 
-- Nombre del producto: `OpenML Code`
-- Base del editor: `Code - OSS`
-- Tema por defecto: `OpenML Prussian Blue`
-- Ejecutable local y distribuible en Windows: `OMLCode.exe`
-- Instalador Windows: `OpenMLCodeSetup.exe`
-- Flujo principal de modelos: `Ollama` y `LM Studio`
-- Proveedores remotos soportados: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, `Azure Foundry`
-- Chat propio ubicado en la barra lateral derecha
-- `GitHub Copilot` removido como chat por defecto del producto
-- API keys remotas guardadas en `SecretStorage`
-- Registry por defecto: `Open VSX`
-- Filosofia UX del asistente: compacta, minimalista y cercana a IDEs AI modernos
+- Product name: `OpenML Code`
+- Editor base: `Code - OSS`
+- Default theme: `OpenML Prussian Blue`
+- Local and distributable Windows executable: `OMLCode.exe`
+- Windows installer: `OpenMLCodeSetup.exe`
+- Main model flow: `Ollama` and `LM Studio`
+- Supported remote providers: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, `Azure Foundry`
+- Custom chat placed in the right sidebar
+- `GitHub Copilot` removed as the product's default chat
+- Remote API keys stored in `SecretStorage`
+- Default registry: `Open VSX`
+- Assistant UX philosophy: compact, minimal, and close to modern AI IDEs
 
-## 3. Estado actual real
+## 3. Current Real Status
 
-### Producto
+### Product
 
-- `OpenML Code` compila y arranca localmente
-- el runtime local de Electron ya se genera como `OMLCode.exe`
-- el bundle Win32 tambien se genera con `OMLCode.exe`
-- el instalador Win32 ya se genera como `OpenMLCodeSetup.exe`
-- la version portable Win32 ya se genera como `OpenMLCode-win32-x64-portable.zip`
-- el launcher `./scripts/code.bat` funciona para abrir el IDE y validar version
-- el branding tecnico principal esta aplicado en el fork
-- el tema por defecto ya usa la paleta `Prussian Blue`
-- el splash y la welcome page ya reflejan branding propio de `OpenML Code`
-- la Welcome Page inicial ya muestra una introduccion propia de `OpenML Code`
-- el menu `Help` de la distribucion propia ya no expone `Report Issue`
+- `OpenML Code` builds and starts locally
+- the local Electron runtime is generated as `OMLCode.exe`
+- the Win32 bundle is also generated as `OMLCode.exe`
+- the Win32 installer is generated as `OpenMLCodeSetup.exe`
+- the Win32 portable build is generated as `OpenMLCode-win32-x64-portable.zip`
+- the launcher `./scripts/code.bat` works to open the IDE and validate the version
+- the main technical branding is applied in the fork
+- the default theme already uses the `Prussian Blue` palette
+- the splash and welcome page already reflect `OpenML Code` branding
+- the initial Welcome Page now shows an `OpenML Code` introduction
+- the `Help` menu in the custom distribution no longer exposes `Report Issue`
 
-### Versionado
+### Versioning
 
-Hay dos nociones de version importantes:
+There are two important version concepts:
 
-- Version comercial del producto: `OpenML Code 1.0.0-beta1`
-- Version tecnica interna del host de VS Code: `1.95.0`
+- Commercial product version: `OpenML Code 1.0.0-beta1`
+- Internal VS Code host version: `1.95.0`
 
-Esto se separo porque las extensiones builtin de VS Code necesitan una version API compatible del host.
+This was separated because built-in VS Code extensions still require a compatible host API version.
 
-## 4. Estructura actual del repo
+## 4. Current Repository Structure
 
 ```text
 CustomIDE/
@@ -74,9 +74,9 @@ CustomIDE/
 `-- PLANNING.md
 ```
 
-## 5. Archivos importantes hoy
+## 5. Important Files Today
 
-### Branding, runtime y distribucion
+### Branding, Runtime, And Distribution
 
 - `apps/code-oss/product.json`
 - `apps/code-oss/build/lib/electron.ts`
@@ -87,7 +87,7 @@ CustomIDE/
 - `scripts/release/package-win32.ps1`
 - `docs/distribution.md`
 
-### Asistente AI
+### AI Assistant
 
 - `apps/code-oss/extensions/openml-vibe-assistant/package.json`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/extension.ts`
@@ -100,34 +100,34 @@ CustomIDE/
 - `apps/code-oss/extensions/openml-vibe-assistant/src/memory.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/projectState.ts`
 
-## 6. Capacidades actuales de OpenML Assistant
+## 6. Current OpenML Assistant Capabilities
 
-### Chat y proveedores
+### Chat And Providers
 
-- vista propia en la barra lateral derecha
-- modos `agent`, `ask`, `edit`, `plan`
-- `streaming` de respuestas
-- soporte para `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter` y `Azure Foundry`
-- soporte multimodal para imagen y PDF en `OpenAI`, `Gemini`, `Anthropic` y `OpenRouter`
-- autodeteccion de modelos para `Ollama` y `LM Studio`
-- listado remoto de modelos para `Anthropic` y `OpenAI`
-- selector de proveedor y modelo desde la UI
-- renderizado Markdown real en respuestas
-- resaltado de sintaxis en bloques de codigo del chat
-- accion `Copy` por snippet dentro del chat
-- envio con `Enter` y salto de linea con `Shift+Enter`
-- opcion `Run Again` para relanzar el ultimo prompt con el modelo actual
-- boton `Send` que cambia a `Stop` durante la ejecucion y permite cancelar la solicitud activa
-- proveedor `Azure Foundry` via `Responses API`
+- custom view in the right sidebar
+- `agent`, `ask`, `edit`, and `plan` modes
+- response `streaming`
+- support for `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, and `Azure Foundry`
+- multimodal support for images and PDFs in `OpenAI`, `Gemini`, `Anthropic`, and `OpenRouter`
+- automatic model discovery for `Ollama` and `LM Studio`
+- remote model listing for `Anthropic` and `OpenAI`
+- provider and model selector in the UI
+- real Markdown rendering in responses
+- syntax highlighting in chat code blocks
+- `Copy` action per snippet in the chat
+- `Enter` to send and `Shift+Enter` for line breaks
+- `Run Again` to rerun the last prompt using the current model
+- `Send` button that changes to `Stop` during execution and can cancel the active request
+- `Azure Foundry` support through the `Responses API`
 
-### Seguridad y configuracion
+### Security And Configuration
 
-- `SecretStorage` para API keys remotas
-- migracion desde settings legacy a secretos seguros
-- comandos con aprobacion antes de ejecucion
-- correccion de secreto real en test reemplazado por valor sintetico para evitar fugas en el repo
+- `SecretStorage` for remote API keys
+- migration from legacy settings to secure secrets
+- approval flow before running commands
+- real secret removed from tests and replaced with a synthetic value to avoid leaks
 
-### Herramientas del workspace
+### Workspace Tools
 
 - `/read <path>`
 - `/search <pattern>`
@@ -146,117 +146,117 @@ CustomIDE/
 - `/context <query>`
 - `/reindex`
 
-### Edicion asistida
+### Assisted Editing
 
-- extraccion de propuestas `openml-edit`
-- preview de cambios con resumen Markdown y diff
-- aplicacion de cambios con aprobacion
-- soporte multiarchivo
-- tests sugeridos
-- comando `OpenML Assistant: Edit With Preview`
+- `openml-edit` proposal extraction
+- change preview with Markdown summary and diff
+- apply flow with approval
+- multi-file support
+- suggested tests
+- `OpenML Assistant: Edit With Preview` command
 
-### Ejecucion profunda
+### Deep Execution
 
-- terminal controlada mas rica via output channel `OpenML Assistant Tools`
-- ejecucion de tests con autodeteccion basica
-- lectura de diagnosticos del editor
-- fix loop automatico con re-check despues de `Apply Edits`
-- reintentos automaticos del fix loop hasta un limite controlado
+- richer controlled terminal through `OpenML Assistant Tools` output channel
+- basic test execution
+- editor diagnostics reading
+- automatic fix loop with post-apply recheck
+- controlled retry loop for fixes
 
-### Contexto profundo
+### Deep Context
 
-- indexado semantico ligero del workspace
-- recuperacion de fragmentos relevantes por scoring lexical local
-- consulta de simbolos por `WorkspaceSymbolProvider`
-- memoria persistente de proyecto por workspace
-- reglas persistentes por workspace
-- inyeccion automatica de contexto profundo en los prompts del asistente
+- lightweight semantic workspace indexing
+- local lexical scoring for relevant fragment retrieval
+- symbol lookup through `WorkspaceSymbolProvider`
+- persistent project memory per workspace
+- persistent rules per workspace
+- automatic prompt enrichment with deep context
 
-## 7. Limitaciones actuales
+## 7. Current Limitations
 
-- el modelo no siempre devuelve un bloque `openml-edit`; cuando eso pasa no se puede aplicar la respuesta como cambio estructurado
-- el resaltado de sintaxis del chat ya mejoro, pero todavia falta mas pulido visual para respuestas largas, snippets complejos y acciones adicionales sobre codigo
-- el parsing de errores de tests todavia es generico; no prioriza los fallos mas relevantes
-- el indexado semantico actual es ligero y local; aun no usa embeddings ni vector DB
-- el auto-update sigue configurado a nivel de producto, pero el backend real aun no esta desplegado
-- Linux y macOS ya tienen scripts de release, pero la validacion completa realizada en esta etapa fue la de Windows
+- the model does not always return an `openml-edit` block; when that happens, the response cannot be applied as a structured change
+- syntax highlighting in the chat improved, but longer responses, complex snippets, and extra code actions still need more polish
+- test error parsing is still generic and does not yet prioritize the most relevant failures
+- the current semantic index is lightweight and local; it does not yet use embeddings or a vector database
+- auto-update is configured at the product level, but the real backend is not yet deployed
+- Linux and macOS already have release scripts, but the full validation completed in this stage was Windows
 
-## 8. Estado del build y release
+## 8. Build And Release Status
 
-Validaciones completadas:
+Completed validations:
 
-- `npm.cmd install` en `apps/code-oss`: OK
-- `npm.cmd run compile` en `apps/code-oss`: OK
+- `npm.cmd install` in `apps/code-oss`: OK
+- `npm.cmd run compile` in `apps/code-oss`: OK
 - `npm.cmd run electron`: OK
-- `apps/code-oss/.build/electron/OMLCode.exe`: generado correctamente
+- `apps/code-oss/.build/electron/OMLCode.exe`: generated correctly
 - `./scripts/code.bat --version`: OK
-- compilacion separada de `openml-vibe-assistant`: OK
+- separate compilation of `openml-vibe-assistant`: OK
 - `scripts/release/package-win32.ps1 -Arch x64 -Target user`: OK
 - `scripts/release/package-win32-portable.ps1 -Arch x64`: OK
-- bundle Win32 generado en `apps/VSCode-win32-x64`: OK
-- instalador Win32 generado en `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`: OK
-- portable Win32 generado en `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable.zip`: OK
-- pipeline Win32 endurecido para incluir `rg.exe` y binarios nativos requeridos por el runtime: OK
+- Win32 bundle generated in `apps/VSCode-win32-x64`: OK
+- Win32 installer generated in `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`: OK
+- Win32 portable zip generated in `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable.zip`: OK
+- Win32 pipeline hardened to include `rg.exe` and native runtime binaries: OK
 
-## 9. Roadmap actualizado
+## 9. Updated Roadmap
 
-### Fase 0. Fundacion
+### Phase 0. Foundation
 
-Estado: completada
+Status: completed
 
-### Fase 1. Asistente usable
+### Phase 1. Usable Assistant
 
-Estado: completada
+Status: completed
 
-### Fase 2. Pulido AI
+### Phase 2. AI Product Polish
 
-Estado: completada
+Status: completed
 
-### Fase 3. Edicion asistida
+### Phase 3. Assisted Editing
 
-Estado: completada en su primera version funcional
+Status: completed in its first functional version
 
-### Fase 4. Herramientas y ejecucion profunda
+### Phase 4. Tools And Deep Execution
 
-Estado: completada en su primera version funcional
+Status: completed in its first functional version
 
-### Fase 5. Contexto profundo
+### Phase 5. Deep Context
 
-Estado: completada en su primera version funcional
+Status: completed in its first functional version
 
-### Fase 6. Producto distribuible
+### Phase 6. Distributable Product
 
-- empaquetado Win32 validado end-to-end
-- instalador renombrado a `OpenMLCodeSetup.exe`
-- ejecutable Windows unificado como `OMLCode.exe`
-- base de `Open VSX`, `updateUrl` y observabilidad local ya integrada
-- version portable Win32 generada y lista para compartir via GitHub Releases
-- Welcome Page inicial personalizada para `OpenML Code`
+- Win32 packaging validated end to end
+- installer renamed to `OpenMLCodeSetup.exe`
+- Windows executable unified as `OMLCode.exe`
+- base integration for `Open VSX`, `updateUrl`, and local observability
+- Win32 portable build generated and ready to share through GitHub Releases
+- customized initial Welcome Page for `OpenML Code`
 
-Estado: completada y cerrada en su primera base operativa, con instalador y portable de Windows validados
+Status: completed and closed in its first operational baseline, with Windows installer and portable build validated
 
-## 11. Cierre de etapa 1
+## 10. Risks And Notes
 
-La primera etapa queda cerrada con estos entregables concretos:
+- maintaining a deep VS Code fork remains costly; as much logic as possible should stay in extensions
+- persisted workbench state can leave layout remnants in old profiles
+- access to the official Microsoft Marketplace should not be assumed for the final distribution
+- `OpenML Code` is oriented toward `Open VSX` as the default registry
+- some models still behave inconsistently when returning structured editable proposals
+- remote model catalogs can include unwanted IDs; `OpenAI` listing is already filtered to useful chat/coding families
+- when GitHub detects exposed secrets, the real credential must still be revoked or rotated in addition to the code fix
+- reproducible Windows builds require `Node.js 22.22.x`, `Visual Studio 2022` with C++, `Windows SDK`, and `Python 3`
 
-- fork funcional de `Code - OSS` con branding propio
-- `OpenML Assistant` builtin operativo
-- modos `agent`, `ask`, `edit` y `plan`
-- soporte multimodal de imagen y PDF para proveedores remotos compatibles
-- instalador Windows funcional
-- build portable Windows funcional
-- paquete `.vsix` para `Open VSX`
-- documentacion y scripts de release alineados con el estado real del producto
+## 11. Stage 1 Closure
 
-La siguiente etapa ya se enfoca en calidad de experiencia, robustez del agente, distribucion avanzada y validacion con usuarios reales.
+The first stage is closed with these concrete deliverables:
 
-## 10. Riesgos y observaciones
+- functional `Code - OSS` fork with custom branding
+- working built-in `OpenML Assistant`
+- `agent`, `ask`, `edit`, and `plan` modes
+- multimodal image and PDF support for compatible remote providers
+- working Windows installer
+- working Windows portable build
+- `.vsix` package for `Open VSX`
+- documentation and release scripts aligned with the real product state
 
-- mantener un fork profundo del core sigue siendo costoso; conviene dejar la mayor parte posible en extensiones
-- el estado persistido del workbench puede dejar restos de layout en perfiles viejos
-- el acceso al Marketplace oficial de Microsoft no debe asumirse para la distribucion final
-- `OpenML Code` queda orientado a `Open VSX` como registry por defecto
-- algunos modelos siguen siendo inconsistentes devolviendo propuestas editables estructuradas
-- los catalogos remotos de modelos pueden incluir ids no deseados; hoy el listado de `OpenAI` ya se filtra a familias utiles para chat/coding
-- cuando GitHub detecte secretos expuestos, ademas del fix en codigo se debe rotar o revocar la credencial real
-- para mantener builds reproducibles en Windows hacen falta `Node.js 22.22.x`, `Visual Studio 2022` con C++, `Windows SDK` y `Python 3`
+The next stage now focuses on experience quality, agent robustness, advanced distribution, and validation with real users.

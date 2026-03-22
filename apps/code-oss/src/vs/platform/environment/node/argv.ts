@@ -205,6 +205,7 @@ export const OPTIONS: OptionDescriptions<Required<NativeParsedArgs>> = {
 	'enable-coi': { type: 'boolean' },
 	'unresponsive-sample-interval': { type: 'string' },
 	'unresponsive-sample-period': { type: 'string' },
+	'unresponsive-dialog-delay': { type: 'string' },
 	'enable-rdp-display-tracking': { type: 'boolean' },
 	'disable-layout-restore': { type: 'boolean' },
 	'disable-experiments': { type: 'boolean' },

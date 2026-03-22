@@ -95,7 +95,7 @@ function requireValue(value: string, label: string): string {
 
 function getAttachmentLabel(kind: AttachmentKind): string {
 	switch (kind) {
-		case 'image': return 'imagen';
+		case 'image': return 'image';
 		case 'pdf': return 'PDF';
 		default: return 'PDF';
 	}
@@ -119,21 +119,22 @@ function assertProviderSupportsAttachments(provider: ProviderId, input: Workspac
 		case 'gemini':
 		case 'anthropic':
 		case 'openrouter':
+		case 'azurefoundry':
 			return;
 		case 'openai': {
 			const unsupportedKinds = kinds.filter(kind => kind !== 'image' && kind !== 'pdf');
 			if (unsupportedKinds.length) {
-				throw new Error(`El modelo no soporta archivos del tipo ${formatAttachmentKinds(unsupportedKinds)}.`);
+				throw new Error(`The model does not support files of type ${formatAttachmentKinds(unsupportedKinds)}.`);
 			}
 
 			const oversizeImage = (input.attachments ?? []).find(attachment => attachment.kind === 'image' && (attachment.byteSize ?? 0) > 2 * 1024 * 1024);
 			if (oversizeImage) {
-				throw new Error(`La imagen adjunta ${oversizeImage.name} supera el limite de 2 MB soportado por OpenAI.`);
+				throw new Error(`The attached image ${oversizeImage.name} exceeds the 2 MB limit supported by OpenAI.`);
 			}
 			return;
 		}
 		default: {
-			throw new Error(`El modelo no soporta archivos del tipo ${formatAttachmentKinds(kinds)}.`);
+			throw new Error(`The model does not support files of type ${formatAttachmentKinds(kinds)}.`);
 		}
 	}
 }
@@ -148,7 +149,7 @@ function isAttachmentSupportError(error: unknown): boolean {
 
 function normalizeAttachmentError(input: WorkspacePrompt, error: unknown): never {
 	if (input.attachments?.length && isAttachmentSupportError(error)) {
-		throw new Error(`El modelo no soporta archivos del tipo ${formatAttachmentKinds(getAttachmentKinds(input))}.`);
+		throw new Error(`The model does not support files of type ${formatAttachmentKinds(getAttachmentKinds(input))}.`);
 	}
 
 	throw error;
@@ -462,7 +463,7 @@ function buildAzureFoundryResponsesUrl(host: string, apiVersion: string): string
 
 	const parsedUrl = new URL(rawHost);
 	const normalizedPath = parsedUrl.pathname.replace(/\/$/, '');
-	if (!/\/openai\/responses$/i.test(normalizedPath)) {
+	if (!/\/openai(?:\/v1)?\/responses$/i.test(normalizedPath)) {
 		parsedUrl.pathname = `${normalizedPath}/openai/responses`;
 	}
 
@@ -541,6 +542,25 @@ function extractResponsesApiText(json: any): string {
 	return extractTextFromResponseContent(json?.content);
 }
 
+function createResponsesApiUserContent(input: WorkspacePrompt): Array<Record<string, string>> {
+	return [
+		{ type: 'input_text', text: createUserPrompt(input) },
+		...(input.attachments ?? [])
+			.filter(attachment => attachment.kind === 'image')
+			.map(attachment => ({
+				type: 'input_image',
+				image_url: `data:${attachment.mimeType};base64,${attachment.base64Data ?? ''}`
+			})),
+		...(input.attachments ?? [])
+			.filter(attachment => attachment.kind === 'pdf')
+			.map(attachment => ({
+				type: 'input_file',
+				filename: attachment.name,
+				file_data: `data:${attachment.mimeType};base64,${attachment.base64Data ?? ''}`
+			}))
+	];
+}
+
 async function callAzureFoundry(input: WorkspacePrompt): Promise<ProviderResponse> {
 	const host = requireValue(getString('azureFoundry.host'), 'openmlAssistant.azureFoundry.host');
 	const apiVersion = getString('azureFoundry.apiVersion', '2025-04-01-preview');
@@ -549,7 +569,10 @@ async function callAzureFoundry(input: WorkspacePrompt): Promise<ProviderRespons
 	const authMode = getString('azureFoundry.authMode', 'bearer') || 'bearer';
 	const json = await postJson(buildAzureFoundryResponsesUrl(host, apiVersion), {
 		model: deployment,
-		input: createUserPrompt(input),
+		input: [{
+			role: 'user',
+			content: createResponsesApiUserContent(input)
+		}],
 		instructions: input.systemPrompt,
 		max_output_tokens: getNumber('azureFoundry.maxOutputTokens', DEFAULT_AZURE_FOUNDRY_MAX_OUTPUT_TOKENS)
 	}, {
@@ -573,22 +596,7 @@ async function callOpenAIResponses(input: WorkspacePrompt): Promise<ProviderResp
 		instructions: input.systemPrompt,
 		input: [{
 			role: 'user',
-			content: [
-				{ type: 'input_text', text: createUserPrompt(input) },
-				...(input.attachments ?? [])
-					.filter(attachment => attachment.kind === 'image')
-					.map(attachment => ({
-						type: 'input_image',
-						image_url: `data:${attachment.mimeType};base64,${attachment.base64Data ?? ''}`
-					})),
-				...(input.attachments ?? [])
-					.filter(attachment => attachment.kind === 'pdf')
-					.map(attachment => ({
-						type: 'input_file',
-						filename: attachment.name,
-						file_data: `data:${attachment.mimeType};base64,${attachment.base64Data ?? ''}`
-					}))
-			]
+			content: createResponsesApiUserContent(input)
 		}],
 		max_output_tokens: getNumber('openai.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
 	}, {

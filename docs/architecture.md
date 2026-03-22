@@ -1,14 +1,14 @@
-# Arquitectura tecnica concreta
+# Concrete Technical Architecture
 
-## 1. Vision de producto
+## 1. Product Vision
 
-`OpenML Code` se construye sobre `Code - OSS`, pero la mayor parte de la inteligencia vive fuera del core:
+`OpenML Code` is built on top of `Code - OSS`, but most of the intelligence lives outside the core:
 
-`Code - OSS + branding propio + extension AI builtin + tools + contexto profundo + servicios opcionales`
+`Code - OSS + custom branding + built-in AI extension + tools + deep context + optional services`
 
-Eso reduce el costo de mantenimiento del fork y permite iterar rapido en la experiencia AI sin acoplar todo al core del editor.
+This reduces the maintenance cost of the fork and allows fast iteration on the AI experience without coupling everything to the editor core.
 
-## 2. Estructura de carpetas
+## 2. Folder Structure
 
 ```text
 CustomIDE/
@@ -28,254 +28,254 @@ CustomIDE/
 `-- PLANNING.md
 ```
 
-## 3. Modulos principales
+## 3. Main Modules
 
 ### `apps/code-oss`
 
-Responsabilidad:
+Responsibility:
 
-- branding del producto
-- empaquetado y distribucion
-- configuracion de producto
-- ajustes minimos del workbench cuando no exista alternativa por extension
-- estrategia de updates y sincronizacion con upstream
+- product branding
+- packaging and distribution
+- product configuration
+- minimal workbench adjustments when no extension-based alternative exists
+- update strategy and upstream synchronization
 
 ### `apps/code-oss/extensions/openml-vibe-assistant`
 
-Responsabilidad:
+Responsibility:
 
-- panel/chat del agente
-- UX de proveedor, modelo y modo
-- `streaming` de respuestas
-- renderizado Markdown en el webview
-- integracion con contexto del editor activo
-- herramientas del workspace
-- aprobacion de acciones riesgosas
-- gestion segura de secretos remotos con `SecretStorage`
-- edicion asistida y loops de correccion
-- indexado semantico ligero, simbolos, memoria y reglas persistentes por workspace
+- agent panel/chat
+- provider, model, and mode UX
+- response `streaming`
+- Markdown rendering in the webview
+- active editor context integration
+- workspace tools
+- approval for risky actions
+- secure remote secret handling with `SecretStorage`
+- assisted editing and correction loops
+- lightweight semantic indexing, symbols, memory, and persistent workspace rules
 
-## 4. Stack exacto actual
+## 4. Current Exact Stack
 
-### Capa editor
+### Editor Layer
 
 - `Code - OSS`
 - Electron
 - TypeScript
 - VS Code Extension API
-- webview propio para el asistente
-- tareas gulp del repo de VS Code para compilar y empaquetar
+- custom assistant webview
+- VS Code repo gulp tasks for compilation and packaging
 
-### Capa AI actual
+### Current AI Layer
 
-- `openml-vibe-assistant` como extension builtin
-- proveedores locales: `Ollama`, `LM Studio`
-- proveedores remotos: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, `Azure Foundry`
-- `SecretStorage` para API keys
-- `markdown-it` para render de respuestas enriquecidas
-- `Open VSX` como registry de extensiones por defecto
+- `openml-vibe-assistant` as a built-in extension
+- local providers: `Ollama`, `LM Studio`
+- remote providers: `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, `Azure Foundry`
+- `SecretStorage` for API keys
+- `markdown-it` for rich response rendering
+- `Open VSX` as the default extension registry
 
-### Contexto profundo actual
+### Current Deep Context
 
-- indice semantico ligero local basado en chunks y scoring lexical
-- `vscode.executeWorkspaceSymbolProvider` para simbolos
-- `workspaceState` para memoria y reglas persistentes
-- enriquecimiento automatico de prompts con contexto profundo
+- local lightweight semantic index based on chunks and lexical scoring
+- `vscode.executeWorkspaceSymbolProvider` for symbols
+- `workspaceState` for memory and persistent rules
+- automatic prompt enrichment with deep context
 
-### Distribucion y observabilidad
+### Distribution And Observability
 
-- `product.json` configurado con `quality`, `updateUrl`, `extensionsGallery`, `win32ExecutableName` y `win32SetupExeName`
-- scripts de release en `scripts/release/` para Windows, Linux y macOS
-- script de release portable en `scripts/release/package-win32-portable.ps1`
-- runbook operativo en `docs/distribution.md`
-- bundle local inicial de observabilidad via `collect-observability.ps1`
-- empaquetado Win32 validado con bundle `OMLCode.exe` e instalador `OpenMLCodeSetup.exe`
-- empaquetado portable Win32 validado con `OpenMLCode-win32-x64-portable.zip`
-- splash y welcome page alineados con branding de `OpenML Code`
-- Welcome Page inicial personalizada para la distribucion propia
-- menu `Help` ajustado para distribucion propia sin `Report Issue`
+- `product.json` configured with `quality`, `updateUrl`, `extensionsGallery`, `win32ExecutableName`, and `win32SetupExeName`
+- release scripts in `scripts/release/` for Windows, Linux, and macOS
+- portable release script in `scripts/release/package-win32-portable.ps1`
+- operational runbook in `docs/distribution.md`
+- initial local observability bundle through `collect-observability.ps1`
+- validated Win32 packaging with `OMLCode.exe` bundle and `OpenMLCodeSetup.exe` installer
+- validated Win32 portable packaging with `OpenMLCode-win32-x64-portable.zip`
+- splash and welcome page aligned with `OpenML Code` branding
+- customized initial Welcome Page for the custom distribution
+- `Help` menu adjusted for self-distribution without `Report Issue`
 
-### Tooling y build
+### Tooling And Build
 
 - `pnpm`
 - `Node.js 22.22.x`
 - TypeScript
-- Gulp del repo de VS Code para compilar extensiones builtin
-- PowerShell y `npm.cmd` en Windows
-- `Visual Studio 2022` o `Build Tools 2022` con workload de C++
+- VS Code repo gulp tasks to build built-in extensions
+- PowerShell and `npm.cmd` on Windows
+- `Visual Studio 2022` or `Build Tools 2022` with C++ workload
 - `MSVC v143`
 - `Windows SDK`
-- `Python 3` para `node-gyp` y reconstruccion de modulos nativos
+- `Python 3` for `node-gyp` and native module rebuilds
 
-### Backend futuro
+### Future Backend
 
 - Node.js 22
 - Fastify
 - Zod
-- SQLite o Postgres
+- SQLite or Postgres
 
-## 5. Arquitectura del asistente actual
+## 5. Current Assistant Architecture
 
-### UI y orquestacion
+### UI And Orchestration
 
-Archivos principales:
+Main files:
 
 - `apps/code-oss/extensions/openml-vibe-assistant/src/extension.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/panel.ts`
 
-Responsabilidad:
+Responsibility:
 
-- registrar la vista builtin del asistente
-- abrir el chat en la barra lateral derecha
-- manejar eventos del webview
-- coordinar envio de prompts, cambios de proveedor/modelo y acciones del menu
-- permitir reejecucion del ultimo prompt y cancelacion de solicitudes en curso
-- coordinar preview, apply, tests sugeridos y loops de fix
-- inicializar memoria de workspace y reconstruir indice al activar la extension
+- register the built-in assistant view
+- open the chat in the right sidebar
+- handle webview events
+- coordinate prompt sending, provider/model changes, and menu actions
+- support rerunning the last prompt and canceling active requests
+- coordinate preview, apply, suggested tests, and fix loops
+- initialize workspace memory and rebuild the index on extension activation
 
-### Runtime de proveedores
+### Provider Runtime
 
-Archivo principal:
+Main file:
 
 - `apps/code-oss/extensions/openml-vibe-assistant/src/providers.ts`
 
-Responsabilidad:
+Responsibility:
 
-- construir prompts con contexto local
-- resolver proveedor activo
-- autodetectar modelos de `Ollama` y `LM Studio`
-- listar modelos remotos de `Anthropic` y `OpenAI`
-- hacer llamadas normales y en `streaming`
-- soportar respuestas de modo `edit` preparadas para `openml-edit`
-- integrar contexto profundo antes de cada llamada
-- manejar `Anthropic Messages API`
-- manejar `Azure Foundry Responses API`
-- manejar entradas multimodales de imagen y PDF en proveedores compatibles
-- filtrar el catalogo de modelos de `OpenAI` a familias utiles para chat/coding
+- build prompts with local context
+- resolve the active provider
+- autodetect `Ollama` and `LM Studio` models
+- list remote models for `Anthropic` and `OpenAI`
+- execute regular and `streaming` calls
+- support `edit` mode responses prepared for `openml-edit`
+- inject deep context before every call
+- handle `Anthropic Messages API`
+- handle `Azure Foundry Responses API`
+- handle multimodal image and PDF inputs for compatible providers
+- filter the `OpenAI` catalog down to useful chat/coding model families
 
-### Secretos
+### Secrets
 
-Archivo principal:
+Main file:
 
 - `apps/code-oss/extensions/openml-vibe-assistant/src/secrets.ts`
 
-Responsabilidad:
+Responsibility:
 
-- guardar claves remotas en `SecretStorage`
-- migrar API keys antiguas desde settings
-- exponer flujo seguro para captura de credenciales
+- store remote keys in `SecretStorage`
+- migrate old API keys from settings
+- expose a secure credential capture flow
 
-### Edicion asistida
+### Assisted Editing
 
-Archivo principal:
+Main file:
 
 - `apps/code-oss/extensions/openml-vibe-assistant/src/editing.ts`
 
-Responsabilidad:
+Responsibility:
 
-- extraer bloques `openml-edit`
-- construir preview Markdown y diff
-- abrir diff por archivo
-- aplicar cambios multiarchivo con aprobacion
-- mostrar tests sugeridos
-- cerrar previews obsoletos y refrescar el explorador despues de aplicar cambios
+- extract `openml-edit` blocks
+- build preview Markdown and diff
+- open per-file diffs
+- apply multi-file changes with approval
+- show suggested tests
+- close stale previews and refresh the explorer after applying changes
 
-### Tools profundas
+### Deep Tools
 
-Archivo principal:
+Main file:
 
 - `apps/code-oss/extensions/openml-vibe-assistant/src/tools.ts`
 
-Responsabilidad:
+Responsibility:
 
-- lectura de archivos, busqueda y diff
-- lectura de diagnosticos
-- ejecucion de tests
-- ejecucion de comandos con aprobacion
-- loops de fix
-- memoria del proyecto y reglas persistentes
-- simbolos del workspace
-- contexto profundo
-- canal de salida dedicado para ejecucion profunda
+- file reading, search, and diff
+- diagnostics reading
+- test execution
+- command execution with approval
+- fix loops
+- project memory and persistent rules
+- workspace symbols
+- deep context
+- dedicated output channel for deep execution
 
-### Contexto profundo
+### Deep Context
 
-Archivos principales:
+Main files:
 
 - `apps/code-oss/extensions/openml-vibe-assistant/src/context.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/memory.ts`
 - `apps/code-oss/extensions/openml-vibe-assistant/src/projectState.ts`
 
-Responsabilidad:
+Responsibility:
 
-- indexar un subconjunto util del workspace en chunks
-- puntuar fragmentos relevantes para una consulta
-- consultar simbolos via LSP
-- persistir memoria, reglas e historial resumido por workspace
-- construir un bloque de contexto enriquecido para el modelo
+- index a useful subset of the workspace into chunks
+- score relevant fragments for a query
+- query symbols through LSP
+- persist memory, rules, and summarized history per workspace
+- build an enriched context block for the model
 
-## 6. Flujo actual del fix loop
+## 6. Current Fix Loop Flow
 
-1. el usuario ejecuta `/fix` o `/fix <comando>`
-2. el asistente corre tests y recoge diagnosticos
-3. se construye un prompt de correccion con ese contexto
-4. el modelo devuelve una propuesta `openml-edit`
-5. el usuario revisa y aplica cambios
-6. el asistente vuelve a correr tests automaticamente
-7. si aun falla, genera un nuevo intento hasta un limite controlado
+1. the user runs `/fix` or `/fix <command>`
+2. the assistant runs tests and collects diagnostics
+3. a correction prompt is built with that context
+4. the model returns an `openml-edit` proposal
+5. the user reviews and applies the changes
+6. the assistant reruns tests automatically
+7. if it still fails, it generates another attempt up to a controlled limit
 
-## 7. Flujo actual de contexto profundo
+## 7. Current Deep Context Flow
 
-1. el usuario envia una consulta o un prompt de edicion
-2. el asistente indexa o reutiliza el indice ligero del workspace
-3. recupera chunks relevantes segun la consulta y el archivo activo
-4. consulta simbolos del workspace por `WorkspaceSymbolProvider`
-5. incorpora memoria, historial resumido y reglas persistentes del workspace
-6. concatena ese bloque como contexto profundo antes de llamar al modelo
+1. the user sends a query or an editing prompt
+2. the assistant indexes or reuses the lightweight workspace index
+3. it retrieves relevant chunks based on the query and active file
+4. it queries workspace symbols through `WorkspaceSymbolProvider`
+5. it injects workspace memory, summarized history, and persistent rules
+6. it appends that block as deep context before calling the model
 
-## 8. Principios de arquitectura
+## 8. Architectural Principles
 
-1. Mantener el fork de VS Code lo mas delgado posible.
-2. Poner la mayor parte de la inteligencia en extensiones y paquetes compartidos.
-3. Disenar herramientas explicitas y auditables en vez de prompts opacos.
-4. Pedir aprobacion antes de ejecutar comandos, editar muchos archivos o tocar configuracion sensible.
-5. Separar proveedor de modelos, render UI, secretos, edicion, tools y contexto desde el inicio.
-6. Favorecer `local-first` siempre que el usuario tenga modelos corriendo localmente.
-7. Revalidar cambios automaticamente cuando el flujo ya tenga suficiente contexto para hacerlo de forma segura.
-8. Persistir conocimiento por workspace sin depender todavia de servicios externos.
+1. Keep the VS Code fork as thin as possible.
+2. Put as much intelligence as possible into extensions and shared packages.
+3. Design explicit, auditable tools instead of opaque prompts.
+4. Require approval before running commands, editing many files, or touching sensitive configuration.
+5. Separate providers, UI rendering, secrets, editing, tools, and context from the beginning.
+6. Favor `local-first` whenever the user has local models running.
+7. Revalidate changes automatically when the flow already has enough context to do so safely.
+8. Persist workspace knowledge without depending on external services yet.
 
-## 9. Estado real del producto hoy
+## 9. Real Product State Today
 
-El producto actual ya cubre:
+The current product already covers:
 
-- fork funcional de `Code - OSS`
-- branding tecnico principal
-- build y arranque local validados
-- ejecutable `OMLCode.exe` en Windows
-- instalador `OpenMLCodeSetup.exe` en Windows
-- portable `OpenMLCode-win32-x64-portable.zip` en Windows
-- asistente builtin dentro del editor
-- proveedores locales y remotos
-- listado remoto de modelos para `Anthropic` y `OpenAI`
-- soporte multimodal de imagen y PDF en proveedores remotos compatibles
-- `streaming` de respuestas
-- `SecretStorage` para API keys
-- autodeteccion de modelos locales
-- renderizado Markdown de respuestas
-- tools del workspace
-- edicion asistida con preview, apply y tests
-- fix loop automatico de primera iteracion
-- contexto profundo funcional de primera iteracion
-- proveedor `Azure Foundry`
-- UI con `Run Again` y cancelacion en curso
-- release Win32 validado de punta a punta
-- tema por defecto `OpenML Prussian Blue` aplicado tambien en instalaciones nuevas
+- functional `Code - OSS` fork
+- core technical branding
+- validated local build and startup
+- `OMLCode.exe` on Windows
+- `OpenMLCodeSetup.exe` installer on Windows
+- `OpenMLCode-win32-x64-portable.zip` portable build on Windows
+- built-in assistant inside the editor
+- local and remote providers
+- remote model listing for `Anthropic` and `OpenAI`
+- multimodal image and PDF support on compatible remote providers
+- response `streaming`
+- `SecretStorage` for API keys
+- local model autodetection
+- Markdown response rendering
+- workspace tools
+- assisted editing with preview, apply, and tests
+- first-iteration automatic fix loop
+- first-iteration deep context
+- `Azure Foundry` provider
+- UI with `Run Again` and in-progress cancellation
+- end-to-end validated Win32 release
+- `OpenML Prussian Blue` default theme also applied to fresh installs
 
-Todavia no cubre:
+It still does not fully cover:
 
-- resaltado de sintaxis avanzado y acciones sobre snippets
-- parsing mas inteligente de errores de tests
-- embeddings o vector DB reales para contexto semantico
-- backend opcional o gateway centralizado
-- branding visual final del producto
-- validacion de release Linux/macOS al mismo nivel que Windows
+- advanced syntax highlighting and richer snippet actions
+- smarter test error parsing
+- real embeddings or vector database for semantic context
+- optional backend or centralized gateway
+- final visual branding system
+- Linux/macOS release validation at the same level as Windows

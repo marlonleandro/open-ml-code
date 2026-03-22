@@ -224,12 +224,12 @@ export const startEntries: GettingStartedStartEntryContent = [
 
 const Button = (title: string, href: string) => `[${title}](${href})`;
 
-const OpenMLIntroTitle = localize('gettingStarted.openmlIntro.title', "Presentamos OpenML Code");
+const OpenMLIntroTitle = localize('gettingStarted.openmlIntro.title', "Introducing OpenML Code");
 const OpenMLIntroDescription = localize(
 	'gettingStarted.openmlIntro.description',
-	"Presentamos OpenML Code, un entorno de desarrollo integrado revolucionario construido sobre Code - OSS. Disenado para potenciar tu productividad con inteligencia artificial avanzada, ofrece un enfoque local-first que prioriza tu privacidad y control.\nCompatible con multiples proveedores de IA: Ollama, LM Studio, OpenAI, Gemini, Anthropic, OpenRouter y Azure Foundry.\n{0}\n{1}",
-	Button(localize('gettingStarted.openmlIntro.openAssistant', "Abrir OpenML Assistant"), 'command:openmlAssistant.openChat'),
-	Button(localize('gettingStarted.openmlIntro.openSettings', "Configurar Proveedores de IA"), 'command:workbench.action.openSettings?%5B%22openmlAssistant%22%5D')
+	"Introducing OpenML Code, a revolutionary integrated development environment built on top of Code - OSS. Designed to boost your productivity with advanced artificial intelligence, it offers a local-first approach that prioritizes your privacy and control.\nCompatible with multiple AI providers: Ollama, LM Studio, OpenAI, Gemini, Anthropic, OpenRouter, and Azure Foundry.\n{0}\n{1}",
+	Button(localize('gettingStarted.openmlIntro.openAssistant', "Open OpenML Assistant"), 'command:openmlAssistant.openChat'),
+	Button(localize('gettingStarted.openmlIntro.openSettings', "Configure AI Providers"), 'command:workbench.action.openSettings?%5B%22openmlAssistant%22%5D')
 );
 
 function createOpenMLIntroStep(id: string): BuiltinGettingStartedStep {
@@ -246,8 +246,8 @@ function createOpenMLIntroStep(id: string): BuiltinGettingStartedStep {
 export const walkthroughs: GettingStartedWalkthroughContent = [
 	{
 		id: 'Setup',
-		title: localize('gettingStarted.setup.title', "Presentamos OpenML Code"),
-		description: localize('gettingStarted.setup.description', "Un IDE local-first con IA avanzada, privacidad y soporte para multiples proveedores."),
+		title: localize('gettingStarted.setup.title', "Introducing OpenML Code"),
+		description: localize('gettingStarted.setup.description', "A local-first IDE with advanced AI, privacy, and multi-provider support."),
 		isFeatured: true,
 		icon: setupIcon,
 		when: '!isWeb',
@@ -279,8 +279,8 @@ export const walkthroughs: GettingStartedWalkthroughContent = [
 
 	{
 		id: 'SetupWeb',
-		title: localize('gettingStarted.setupWeb.title', "Presentamos OpenML Code"),
-		description: localize('gettingStarted.setupWeb.description', "Un IDE local-first con IA avanzada, privacidad y soporte para multiples proveedores."),
+		title: localize('gettingStarted.setupWeb.title', "Introducing OpenML Code"),
+		description: localize('gettingStarted.setupWeb.description', "A local-first IDE with advanced AI, privacy, and multi-provider support."),
 		isFeatured: true,
 		icon: setupIcon,
 		when: 'isWeb',
