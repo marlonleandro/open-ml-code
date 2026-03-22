@@ -199,10 +199,10 @@ Puedes escribir comandos directos en el chat:
 
 - Local (LM Studio / Ollama): `Qwen3-Coder`, `GML-4.6`, `gpt-oss-20b`
 - OpenAI: `gpt-5.4`, `gpt-5.3-codex`
-- Gemini:  `gemini-2.5-pro`, `gemini-3-flash`
+- Gemini:  `gemini-2.5-pro`, `gemini-3-flash-preview`
 - Anthropic: `claude-sonet-4-5-20250929`, `claude-opus-4-6`
 - OpenRouter: `minimax/minimax-m2.7`, `z-ai/glm-5-turbo`, `qwen/qwen3.5-397b-a17b`
-- Azure Foundry: `gpt-5.3-codex`, `gpt-5.4-mini`
+- Azure Foundry: `gpt-5.3-codex`, `gpt-5.4`, `gpt-5.4-mini`
 
 ## Distribucion
 
