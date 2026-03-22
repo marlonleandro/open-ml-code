@@ -85,13 +85,15 @@ Estado: completada en su primera version funcional
 - telemetria y observabilidad base
 - branding de binarios de Windows
 - release Win32 validado end-to-end
+- release portable Win32 validado end-to-end
 - splash y welcome page de produccion alineados con `OpenML Code`
+- welcome page inicial personalizada para `OpenML Code`
 - tema `OpenML Prussian Blue` aplicado por defecto en instalaciones nuevas
 - remocion de `Report Issue` del menu `Help` en la distribucion propia
 
 Entregable: producto instalable con una primera base operativa de distribucion.
 
-Estado: completada en su primera base operativa, con Windows validado
+Estado: completada y cerrada en su primera base operativa, con instalador y portable de Windows validados
 
 ## Fase 7. Calidad visual y snippets
 
@@ -99,10 +101,11 @@ Estado: completada en su primera base operativa, con Windows validado
 - acciones sobre snippets (`copy code`, etc.)
 - mayor pulido tipografico y visual del chat
 - mejor presentacion de respuestas largas y tecnicas
+- ajustes UX para propuestas editables (`Preview`, `Apply`, `Si / No`)
 
 Entregable: experiencia visual mas profesional y comparable a IDEs AI maduros.
 
-Estado: iniciada; primer avance aplicado en resaltado de snippets y `Copy code`
+Estado: completada en su primera version funcional
 
 ## Fase 8. Robustez del agente
 
@@ -116,6 +119,18 @@ Estado: iniciada; primer avance aplicado en resaltado de snippets y `Copy code`
 Entregable: flujos de correccion y edicion mas consistentes entre modelos.
 
 Estado: pendiente
+
+## Hito actual
+
+La primera etapa del proyecto queda cerrada con:
+
+- producto base distribuible en Windows
+- instalador y portable listos para comunidad
+- extension builtin del asistente ya integrada en el producto
+- `.vsix` preparado para `Open VSX`
+- experiencia inicial de bienvenida alineada con la marca `OpenML Code`
+
+El siguiente foco recomendado es distribucion avanzada, robustez del agente y refinamiento UX sobre casos reales de uso.
 
 ## Fase 9. Distribucion avanzada
 

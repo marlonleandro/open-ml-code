@@ -102,13 +102,14 @@ function darwinBundleDocumentTypes(types: { [name: string]: string | string[] },
 }
 
 const { electronVersion, msBuildId } = util.getElectronVersion();
+const productWithBranding = product as typeof product & { companyName?: string; copyright?: string };
 
 export const config = {
 	version: electronVersion,
 	tag: product.electronRepository ? `v${electronVersion}-${msBuildId}` : undefined,
 	productAppName: product.nameLong,
-	companyName: 'Microsoft Corporation',
-	copyright: 'Copyright (C) 2026 Microsoft. All rights reserved',
+	companyName: productWithBranding.companyName || 'Hyper System SAC',
+	copyright: productWithBranding.copyright || 'Copyright (C) 2026 Hyper System SAC. All rights reserved',
 	darwinExecutable: product.nameShort,
 	darwinIcon: 'resources/darwin/code.icns',
 	darwinBundleIdentifier: product.darwinBundleIdentifier,
@@ -251,5 +252,4 @@ if (import.meta.main) {
 		process.exit(1);
 	});
 }
-
 

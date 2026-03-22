@@ -8,7 +8,7 @@
 AppId={#AppId}
 AppName={#NameLong}
 AppVerName={#NameVersion}
-AppPublisher=OpenML
+AppPublisher=Hyper System SAC
 AppPublisherURL=https://openmlcode.dev/
 AppSupportURL=https://openmlcode.dev/
 AppUpdatesURL=https://updates.openmlcode.dev/

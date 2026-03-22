@@ -224,26 +224,21 @@ export const startEntries: GettingStartedStartEntryContent = [
 
 const Button = (title: string, href: string) => `[${title}](${href})`;
 
-const CopilotStepTitle = localize('gettingStarted.copilotSetup.title', "Use AI features with Copilot for free");
-const CopilotDescription = localize({ key: 'gettingStarted.copilotSetup.description', comment: ['{Locked="["}', '{Locked="]({0})"}'] }, "You can use [Copilot]({0}) to generate code across multiple files, fix errors, ask questions about your code, and much more using natural language.", defaultChat.documentationUrl ?? '');
-const CopilotTermsString = localize({ key: 'gettingStarted.copilotSetup.terms', comment: ['{Locked="]({2})"}', '{Locked="]({3})"}'] }, "By continuing with {0} Copilot, you agree to {1}'s [Terms]({2}) and [Privacy Statement]({3})", defaultChat.provider.default.name, defaultChat.provider.default.name, defaultChat.termsStatementUrl, defaultChat.privacyStatementUrl);
-const CopilotAnonymousButton = Button(localize('setupCopilotButton.setup', "Use AI Features"), `command:workbench.action.chat.triggerSetupAnonymousWithoutDialog`);
-const CopilotSignedOutButton = Button(localize('setupCopilotButton.setup', "Use AI Features"), `command:workbench.action.chat.triggerSetup`);
-const CopilotSignedInButton = Button(localize('setupCopilotButton.setup', "Use AI Features"), `command:workbench.action.chat.triggerSetup`);
-const CopilotCompleteButton = Button(localize('setupCopilotButton.chatWithCopilot', "Start to Chat"), 'command:workbench.action.chat.open');
+const OpenMLIntroTitle = localize('gettingStarted.openmlIntro.title', "Presentamos OpenML Code");
+const OpenMLIntroDescription = localize(
+	'gettingStarted.openmlIntro.description',
+	"Presentamos OpenML Code, un entorno de desarrollo integrado revolucionario construido sobre Code - OSS. Disenado para potenciar tu productividad con inteligencia artificial avanzada, ofrece un enfoque local-first que prioriza tu privacidad y control.\nCompatible con multiples proveedores de IA: Ollama, LM Studio, OpenAI, Gemini, Anthropic, OpenRouter y Azure Foundry.\n{0}\n{1}",
+	Button(localize('gettingStarted.openmlIntro.openAssistant', "Abrir OpenML Assistant"), 'command:openmlAssistant.openChat'),
+	Button(localize('gettingStarted.openmlIntro.openSettings', "Configurar Proveedores de IA"), 'command:workbench.action.openSettings?%5B%22openmlAssistant%22%5D')
+);
 
-function createCopilotSetupStep(id: string, button: string, when: string, includeTerms: boolean): BuiltinGettingStartedStep {
-	const description = includeTerms ?
-		`${CopilotDescription}\n${CopilotTermsString}\n${button}` :
-		`${CopilotDescription}\n${button}`;
-
+function createOpenMLIntroStep(id: string): BuiltinGettingStartedStep {
 	return {
 		id,
-		title: CopilotStepTitle,
-		description,
-		when: `${when} && !chatSetupHidden`,
+		title: OpenMLIntroTitle,
+		description: OpenMLIntroDescription,
 		media: {
-			type: 'svg', altText: 'VS Code Copilot multi file edits', path: 'multi-file-edits.svg'
+			type: 'svg', altText: 'OpenML Code welcome experience', path: 'multi-file-edits.svg'
 		},
 	};
 }
@@ -251,20 +246,17 @@ function createCopilotSetupStep(id: string, button: string, when: string, includ
 export const walkthroughs: GettingStartedWalkthroughContent = [
 	{
 		id: 'Setup',
-		title: localize('gettingStarted.setup.title', "Get started with VS Code"),
-		description: localize('gettingStarted.setup.description', "Customize your editor, learn the basics, and start coding"),
+		title: localize('gettingStarted.setup.title', "Presentamos OpenML Code"),
+		description: localize('gettingStarted.setup.description', "Un IDE local-first con IA avanzada, privacidad y soporte para multiples proveedores."),
 		isFeatured: true,
 		icon: setupIcon,
 		when: '!isWeb',
-		walkthroughPageTitle: localize('gettingStarted.setup.walkthroughPageTitle', 'Setup VS Code'),
+		walkthroughPageTitle: localize('gettingStarted.setup.walkthroughPageTitle', 'OpenML Code'),
 		next: 'Beginner',
 		content: {
 			type: 'steps',
 			steps: [
-				createCopilotSetupStep('CopilotSetupAnonymous', CopilotAnonymousButton, 'chatAnonymous && !chatSetupInstalled', true),
-				createCopilotSetupStep('CopilotSetupSignedOut', CopilotSignedOutButton, 'chatEntitlementSignedOut && !chatAnonymous', false),
-				createCopilotSetupStep('CopilotSetupComplete', CopilotCompleteButton, 'chatSetupInstalled && !chatSetupDisabled && (chatAnonymous || chatPlanPro || chatPlanProPlus || chatPlanBusiness || chatPlanEnterprise || chatPlanFree)', false),
-				createCopilotSetupStep('CopilotSetupSignedIn', CopilotSignedInButton, '!chatEntitlementSignedOut && (!chatSetupInstalled || chatSetupDisabled || chatPlanCanSignUp)', false),
+				createOpenMLIntroStep('OpenMLIntro'),
 				{
 					id: 'pickColorTheme',
 					title: localize('gettingStarted.pickColor.title', "Choose your theme"),
@@ -287,16 +279,17 @@ export const walkthroughs: GettingStartedWalkthroughContent = [
 
 	{
 		id: 'SetupWeb',
-		title: localize('gettingStarted.setupWeb.title', "Get Started with VS Code for the Web"),
-		description: localize('gettingStarted.setupWeb.description', "Customize your editor, learn the basics, and start coding"),
+		title: localize('gettingStarted.setupWeb.title', "Presentamos OpenML Code"),
+		description: localize('gettingStarted.setupWeb.description', "Un IDE local-first con IA avanzada, privacidad y soporte para multiples proveedores."),
 		isFeatured: true,
 		icon: setupIcon,
 		when: 'isWeb',
 		next: 'Beginner',
-		walkthroughPageTitle: localize('gettingStarted.setupWeb.walkthroughPageTitle', 'Setup VS Code Web'),
+		walkthroughPageTitle: localize('gettingStarted.setupWeb.walkthroughPageTitle', 'OpenML Code Web'),
 		content: {
 			type: 'steps',
 			steps: [
+				createOpenMLIntroStep('OpenMLIntroWeb'),
 				{
 					id: 'pickColorThemeWeb',
 					title: localize('gettingStarted.pickColor.title', "Choose your theme"),

@@ -5,6 +5,14 @@
   "publisher": "openml",
   "license": "MIT",
   "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marlonleandro/open-ml-code"
+  },
+  "homepage": "https://github.com/marlonleandro/open-ml-code",
+  "bugs": {
+    "url": "https://github.com/marlonleandro/open-ml-code/issues"
+  },
   "engines": {
     "vscode": "^1.70.0"
   },
