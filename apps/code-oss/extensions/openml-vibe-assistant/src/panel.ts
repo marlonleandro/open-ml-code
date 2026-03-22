@@ -1,4 +1,5 @@
 ﻿import * as vscode from 'vscode';
+import * as path from 'path';
 import {
 	assistantModes,
 	getActiveProvider,
@@ -16,7 +17,9 @@ import {
 	isAbortError,
 	isTimeoutError,
 	type AssistantMode,
-	type ProviderId
+	type ProviderId,
+	type PromptAttachment,
+	type AttachmentKind
 } from './providers';
 import { applyEditProposal, buildUserFacingEditSummary, clearEditPreviewArtifacts, extractEditProposal, looksLikePartialEditProposal, previewEditProposal, showSuggestedTests, stripEditProposalBlock, type EditProposal } from './editing';
 import { buildFixLoopPrompt, maxFixAttempts, runTestsCommand, tryHandleToolPrompt } from './tools';
@@ -29,9 +32,21 @@ type ChatMessage = {
 	content: string;
 };
 
+type PendingAttachment = PromptAttachment & {
+	id: string;
+};
+
+type AttachmentSummary = {
+	id: string;
+	name: string;
+	kind: AttachmentKind;
+};
+
 type WebviewInboundMessage =
 	| { type: 'ready' }
 	| { type: 'submitPrompt'; prompt: string }
+	| { type: 'pickAttachments' }
+	| { type: 'removeAttachment'; id: string }
 	| { type: 'selectProvider'; provider: ProviderId }
 	| { type: 'selectModel'; model: string }
 	| { type: 'selectMode'; mode: AssistantMode }
@@ -64,6 +79,7 @@ type ChatState = {
 	hasEditProposal: boolean;
 	showAgentApplyPrompt: boolean;
 	suggestedTestsCount: number;
+	attachments: AttachmentSummary[];
 	messages: ChatMessage[];
 };
 
@@ -79,6 +95,40 @@ function createWebviewNonce(): string {
 		nonce += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
 	}
 	return nonce;
+}
+
+function createAttachmentId(): string {
+	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function inferAttachmentKind(fileName: string): AttachmentKind | undefined {
+	const ext = path.extname(fileName).toLowerCase();
+	if (['.png', '.jpg', '.jpeg', '.gif', '.bmp'].includes(ext)) {
+		return 'image';
+	}
+	if (ext === '.pdf') {
+		return 'pdf';
+	}
+	return undefined;
+}
+
+function inferMimeType(fileName: string, kind: AttachmentKind): string {
+	const ext = path.extname(fileName).toLowerCase();
+	if (kind === 'pdf') {
+		return 'application/pdf';
+	}
+	if (kind === 'image') {
+		switch (ext) {
+			case '.png': return 'image/png';
+			case '.jpg':
+			case '.jpeg': return 'image/jpeg';
+			case '.gif': return 'image/gif';
+			case '.bmp': return 'image/bmp';
+			default: return 'image/png';
+		}
+	}
+
+	return 'application/octet-stream';
 }
 
 export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, vscode.Disposable {
@@ -101,6 +151,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 	private historyLoaded = false;
 	private historySummary = '';
 	private lastUserPrompt = '';
+	private attachments: PendingAttachment[] = [];
 
 	constructor(extensionUri: vscode.Uri) {
 		this.extensionUri = extensionUri;
@@ -170,6 +221,51 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			...restoredMessages
 		];
 		this.historyLoaded = true;
+	}
+
+	private async pickAttachments(): Promise<void> {
+		const picks = await vscode.window.showOpenDialog({
+			canSelectMany: true,
+			openLabel: 'Attach Files',
+			filters: {
+				'Supported files': ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'pdf']
+			}
+		});
+
+		if (!picks?.length) {
+			return;
+		}
+
+		for (const fileUri of picks) {
+			const kind = inferAttachmentKind(fileUri.fsPath);
+			if (!kind) {
+				void vscode.window.showWarningMessage(`OpenML Assistant skipped ${path.basename(fileUri.fsPath)} because its file type is not supported.`);
+				continue;
+			}
+
+			const bytes = await vscode.workspace.fs.readFile(fileUri);
+			const name = path.basename(fileUri.fsPath);
+			const attachment: PendingAttachment = {
+				id: createAttachmentId(),
+				name,
+				kind,
+				mimeType: inferMimeType(name, kind),
+				byteSize: bytes.byteLength,
+				base64Data: Buffer.from(bytes).toString('base64')
+			};
+
+			this.attachments = [
+				...this.attachments.filter(existing => existing.name !== attachment.name),
+				attachment
+			];
+		}
+
+		await this.syncState();
+	}
+
+	private async removeAttachment(id: string): Promise<void> {
+		this.attachments = this.attachments.filter(attachment => attachment.id !== id);
+		await this.syncState();
 	}
 
 	private toPersistedMessages(): PersistedChatMessage[] {
@@ -283,6 +379,19 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		].join('\n');
 	}
 
+	private buildAttachmentEditRetryPrompt(originalPrompt: string): string {
+		return [
+			originalPrompt,
+			'',
+			'Retry this task using the attached files as the source of truth.',
+			'The previous response did not include a valid openml-edit proposal.',
+			'You must produce the implementation requested by the user, not only describe the attached files.',
+			'Return Markdown plus a final ```openml-edit code block with strict JSON.',
+			'The JSON must include full file contents for every file to create or update.',
+			'Do not omit the openml-edit block.'
+		].join('\n');
+	}
+
 	private async onMessage(message: WebviewInboundMessage): Promise<void> {
 		switch (message.type) {
 			case 'ready':
@@ -301,6 +410,12 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				return;
 			case 'submitPrompt':
 				await this.handlePrompt(message.prompt);
+				return;
+			case 'pickAttachments':
+				await this.pickAttachments();
+				return;
+			case 'removeAttachment':
+				await this.removeAttachment(message.id);
 				return;
 			case 'selectProvider':
 				await setActiveProvider(message.provider);
@@ -371,6 +486,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		let requestPrompt = trimmedPrompt;
 		let requestMode = this.mode;
 		let interactionKind: 'conversation' | 'execution' = 'conversation';
+		const currentAttachments = [...this.attachments];
 
 		if (this.mode === 'agent' && this.isShortAffirmation(trimmedPrompt) && this.shouldContinuePreviousImplementation()) {
 			requestPrompt = this.buildContinuationPrompt(trimmedPrompt);
@@ -421,7 +537,8 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				activeFileName: editor?.document.fileName,
 				selectedText: editor?.document.getText(editor.selection).trim() || undefined,
 				systemPrompt: getSystemPrompt(),
-				mode: modeText
+				mode: modeText,
+				attachments: currentAttachments
 			}, {
 				onDelta: chunk => {
 					assistantMessage.content += chunk;
@@ -446,13 +563,30 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				truncatedProposal = !editProposal && looksLikePartialEditProposal(rawResponse);
 			}
 
+			if (!editProposal && requestMode === 'edit' && currentAttachments.length && !truncatedProposal) {
+				const visibleResponse = stripEditProposalBlock(rawResponse).trim();
+				if (visibleResponse) {
+					assistantMessage.content = 'El modelo analizo los archivos adjuntos, pero no devolvio una propuesta editable. Reintentando automaticamente con instrucciones mas estrictas...';
+					this.lastAssistantResponse = assistantMessage.content;
+					await this.syncState();
+					rawResponse = await runAssistantRequest(this.buildAttachmentEditRetryPrompt(trimmedPrompt), 'edit');
+					editProposal = extractEditProposal(rawResponse);
+					truncatedProposal = !editProposal && looksLikePartialEditProposal(rawResponse);
+				}
+			}
+
 			if (editProposal) {
 				this.lastEditProposal = editProposal;
 				assistantMessage.content = buildUserFacingEditSummary(editProposal);
 			} else if (requestMode === 'edit') {
-				assistantMessage.content = truncatedProposal
-					? 'No se pudo completar el trabajo porque no se recibio la respuesta completa del proveedor del modelo. La propuesta editable llego truncada antes de terminar el JSON, incluso despues de reintentar con un lote mas pequeno. Aumenta el limite de salida del proveedor o divide la solicitud en pasos mas pequenos.'
-					: (stripEditProposalBlock(rawResponse).trim() + '\n\n> OpenML Assistant could not extract an editable proposal from this response. Ask the model to return the result as an `openml-edit` proposal with full file contents.').trim();
+				const visibleResponse = stripEditProposalBlock(rawResponse).trim();
+				if (currentAttachments.length && visibleResponse) {
+					assistantMessage.content = visibleResponse;
+				} else {
+					assistantMessage.content = truncatedProposal
+						? 'No se pudo completar el trabajo porque no se recibio la respuesta completa del proveedor del modelo. La propuesta editable llego truncada antes de terminar el JSON, incluso despues de reintentar con un lote mas pequeno. Aumenta el limite de salida del proveedor o divide la solicitud en pasos mas pequenos.'
+						: (visibleResponse + '\n\n> OpenML Assistant could not extract an editable proposal from this response. Ask the model to return the result as an `openml-edit` proposal with full file contents.').trim();
+				}
 			} else {
 				assistantMessage.content = stripEditProposalBlock(rawResponse).trim();
 			}
@@ -465,6 +599,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 
 			await this.persistProjectHistory();
 			await this.writeProjectArtifacts(trimmedPrompt, assistantMessage.content, requestMode, interactionKind);
+			this.attachments = [];
 		} catch (error) {
 			const text = error instanceof Error ? error.message : String(error);
 			if (isTimeoutError(error)) {
@@ -634,6 +769,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				hasEditProposal: !!this.lastEditProposal?.files.length,
 				showAgentApplyPrompt: this.mode === 'agent' && !!this.lastEditProposal?.files.length,
 				suggestedTestsCount: this.lastEditProposal?.tests.length ?? 0,
+				attachments: this.attachments.map(attachment => ({ id: attachment.id, name: attachment.name, kind: attachment.kind })),
 				messages: this.messages
 			}
 		});
@@ -712,8 +848,8 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		.icon-button, .mode-button, .send-button, .menu-item { font: inherit; }
 
 		.icon-button {
-			width: 26px;
-			height: 26px;
+			width: 34px;
+			height: 34px;
 			border-radius: 8px;
 			border: 1px solid transparent;
 			background: transparent;
@@ -727,6 +863,12 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		.icon-button:hover, .mode-button:hover, .send-button:hover, .menu-item:hover {
 			background: var(--accent-soft);
 			color: var(--text);
+		}
+
+		.attach-icon {
+			width: 20px;
+			height: 20px;
+			display: block;
 		}
 
 		.menu {
@@ -922,6 +1064,40 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			padding: 0 2px;
 		}
 
+		.attachments {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+			margin-top: 6px;
+		}
+
+		.attachment-chip {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 4px 8px;
+			border: 1px solid var(--border);
+			border-radius: 999px;
+			background: rgba(215, 235, 250, 0.06);
+			font-size: 11px;
+			color: var(--text);
+		}
+
+		.attachment-kind {
+			color: var(--muted);
+			text-transform: uppercase;
+			font-size: 10px;
+		}
+
+		.attachment-remove {
+			border: 0;
+			background: transparent;
+			color: var(--muted);
+			cursor: pointer;
+			font: inherit;
+			padding: 0;
+		}
+
 		.bottom {
 			display: flex;
 			justify-content: space-between;
@@ -1019,6 +1195,12 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			width: 14px;
 			height: 14px;
 		}
+
+		.composer-actions {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
 	</style>
 </head>
 <body>
@@ -1049,6 +1231,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		<section class="composer">
 			<textarea id="promptInput" class="prompt-input" placeholder="Ask, edit, plan, delegate, or use /context, /symbols, /memory, /rules, /read, /search, /test, /fix."></textarea>
 			<div id="hintText" class="hint">Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]</div>
+			<div id="attachments" class="attachments"></div>
 			<div id="applyConfirm" class="apply-confirm">
 				<div class="apply-confirm-text">Desea aplicar los cambios en el proyecto actual?</div>
 				<div class="apply-confirm-actions">
@@ -1058,11 +1241,21 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			</div>
 			<div class="bottom">
 				<div id="modeSelector" class="mode-selector">${modeButtonsMarkup}</div>
-				<button id="sendButton" class="send-button" type="button" aria-label="Send">
-					<svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-						<path d="M3 20L21 12L3 4V10L15 12L3 14V20Z" fill="currentColor"/>
-					</svg>
-				</button>
+				<div class="composer-actions">
+					<button id="attachButton" class="icon-button" type="button" aria-label="Attach files">
+						<svg class="attach-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+							<path d="M4.75 4.75H15.5C16.8807 4.75 18 5.86929 18 7.25V12.5H16.5V7.25C16.5 6.69772 16.0523 6.25 15.5 6.25H4.75C4.19772 6.25 3.75 6.69772 3.75 7.25V15.5C3.75 16.0523 4.19772 16.5 4.75 16.5H11V18H4.75C3.36929 18 2.25 16.8807 2.25 15.5V7.25C2.25 5.86929 3.36929 4.75 4.75 4.75Z" fill="currentColor"/>
+							<path d="M6.7 14.7L9.9 10.85C10.1017 10.6069 10.4718 10.5942 10.6898 10.8227L12.95 13.1912L14.3819 11.5803C14.589 11.3474 14.9438 11.3334 15.1687 11.5494L16.75 13.0687V15.1498L14.7985 13.2758L13.3326 14.9247C13.1267 15.1564 12.7737 15.1716 12.5496 14.9588L10.303 12.8251L7.8526 15.7735C7.67685 15.985 7.36268 16.0349 7.12865 15.8926L4.75 14.4459V12.6917L6.7 14.7Z" fill="currentColor"/>
+							<path d="M8.375 9.5C9.06536 9.5 9.625 8.94036 9.625 8.25C9.625 7.55964 9.06536 7 8.375 7C7.68464 7 7.125 7.55964 7.125 8.25C7.125 8.94036 7.68464 9.5 8.375 9.5Z" fill="currentColor"/>
+							<path d="M18 14.25C18.4142 14.25 18.75 14.5858 18.75 15V17.25H21C21.4142 17.25 21.75 17.5858 21.75 18C21.75 18.4142 21.4142 18.75 21 18.75H18.75V21C18.75 21.4142 18.4142 21.75 18 21.75C17.5858 21.75 17.25 21.4142 17.25 21V18.75H15C14.5858 18.75 14.25 18.4142 14.25 18C14.25 17.5858 14.5858 17.25 15 17.25H17.25V15C17.25 14.5858 17.5858 14.25 18 14.25Z" fill="currentColor"/>
+						</svg>
+					</button>
+					<button id="sendButton" class="send-button" type="button" aria-label="Send">
+						<svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+							<path d="M3 20L21 12L3 4V10L15 12L3 14V20Z" fill="currentColor"/>
+						</svg>
+					</button>
+				</div>
 			</div>
 		</section>
 	</div>
@@ -1077,6 +1270,8 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		const modelSelect = document.getElementById('modelSelect');
 		const promptInput = document.getElementById('promptInput');
 		const sendButton = document.getElementById('sendButton');
+		const attachButton = document.getElementById('attachButton');
+		const attachments = document.getElementById('attachments');
 		const statusText = document.getElementById('statusText');
 		const hintText = document.getElementById('hintText');
 		const applyConfirm = document.getElementById('applyConfirm');
@@ -1460,6 +1655,16 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			modelSelect.value = selectedModel || options[0] || '';
 		}
 
+		function renderAttachments(items) {
+			attachments.innerHTML = items.map(item =>
+				'<div class="attachment-chip">' +
+					'<span class="attachment-kind">' + escapeHtml(item.kind) + '</span>' +
+					'<span>' + escapeHtml(item.name) + '</span>' +
+					'<button type="button" class="attachment-remove" data-remove-attachment="' + escapeAttribute(item.id) + '">x</button>' +
+				'</div>'
+			).join('');
+		}
+
 		let currentBusy = false;
 		setMode('agent');
 
@@ -1468,6 +1673,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			providerSelect.disabled = isBusy;
 			modelSelect.disabled = isBusy;
 			promptInput.disabled = isBusy;
+			attachButton.disabled = isBusy;
 			sendButton.innerHTML = isBusy
 				? '<svg class="send-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" fill="#ef4444"/></svg>'
 				: '<svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 20L21 12L3 4V10L15 12L3 14V20Z" fill="currentColor"/></svg>';
@@ -1531,6 +1737,19 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				console.warn('OpenML Assistant could not copy the code block.', error);
 			}
 		});
+		attachments.addEventListener('click', event => {
+			const target = event.target;
+			if (!(target instanceof HTMLElement)) {
+				return;
+			}
+
+			const id = target.dataset.removeAttachment;
+			if (!id) {
+				return;
+			}
+
+			vscode.postMessage({ type: 'removeAttachment', id });
+		});
 		previewEditsButton.addEventListener('click', () => {
 			closeMenu();
 			vscode.postMessage({ type: 'previewEdits' });
@@ -1577,6 +1796,9 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			closeMenu();
 			vscode.postMessage({ type: 'clearHistory' });
 		});
+		attachButton.addEventListener('click', () => {
+			vscode.postMessage({ type: 'pickAttachments' });
+		});
 
 		sendButton.addEventListener('click', () => {
 			if (currentBusy) {
@@ -1621,6 +1843,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 						: 'Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]';
 					setApplyPromptVisible(message.state.showAgentApplyPrompt);
 					setMode(message.state.mode);
+					renderAttachments(message.state.attachments || []);
 					renderMessages(message.state.messages);
 					return;
 				case 'busy':

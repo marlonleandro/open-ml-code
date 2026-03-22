@@ -2,6 +2,21 @@
 
 `OpenML Code` es un IDE basado en `Code - OSS`, enfocado en desarrollo asistido por IA, con enfoque `local-first` y soporte para `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter` y `Azure Foundry`.
 
+## Cierre de la primera etapa
+
+La primera etapa del proyecto ya queda cerrada con una base operativa real del producto:
+
+- IDE funcional con branding propio `OpenML Code`
+- `OpenML Assistant` builtin integrado y usable dentro del editor
+- soporte multimodal para imagen y PDF en proveedores compatibles
+- instalador Windows `OpenMLCodeSetup.exe`
+- version portable Windows lista para compartir con la comunidad
+- extension `.vsix` lista para publicacion en `Open VSX`
+- tema por defecto `OpenML Prussian Blue`
+- welcome experience inicial personalizada para `OpenML Code`
+
+Con esto, `OpenML Code` entra en una fase de distribucion temprana y validacion con usuarios.
+
 ## Que es hoy
 
 `OpenML Code` ya incluye:
@@ -11,6 +26,7 @@
 - splash y welcome page con branding de `OpenML Code`
 - ejecutable Windows `OMLCode.exe`
 - instalador Windows `OpenMLCodeSetup.exe`
+- version portable Windows `OpenMLCode-win32-x64-portable.zip`
 - chat propio `OpenML Assistant` en la barra lateral derecha
 - modos `agent`, `ask`, `edit`, `plan`
 - `streaming` de respuestas
@@ -36,6 +52,8 @@
 - `Anthropic`
 - `OpenRouter`
 - `Azure Foundry`
+
+Todos los proveedores remotos compatibles con multimodal ya pueden procesar imagenes y/o PDF segun sus capacidades.
 
 ## Instalacion y arranque para usuario final
 
@@ -183,8 +201,8 @@ Puedes escribir comandos directos en el chat:
 - OpenAI: `gpt-5.4`, `gpt-5.3-codex`
 - Gemini:  `gemini-2.5-pro`, `gemini-3-flash`
 - Anthropic: `claude-sonet-4-5-20250929`, `claude-opus-4-6`
-- OpenRouter: `minimax/minimax-m2.7`, `z-ai/glm-5-turbo`
-- Azure Foundry: `gpt-5.3-codex`, `gpt-5.4`
+- OpenRouter: `minimax/minimax-m2.7`, `z-ai/glm-5-turbo`, `qwen/qwen3.5-397b-a17b`
+- Azure Foundry: `gpt-5.3-codex`, `gpt-5.4-mini`
 
 ## Distribucion
 
@@ -201,10 +219,24 @@ Salida esperada:
 - bundle Win32 en `apps/VSCode-win32-x64`
 - instalador en `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`
 
+### Generar la version portable de Windows
+
+Desde la raiz del proyecto:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\release\package-win32-portable.ps1 -Arch x64
+```
+
+Salida esperada:
+
+- carpeta portable en `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable`
+- zip portable en `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable.zip`
+
 Scripts utiles:
 
 ```powershell
 pnpm run release:win32
+pnpm run release:win32:portable
 pnpm run release:linux
 pnpm run release:darwin
 pnpm run release:observability
@@ -249,9 +281,12 @@ Notas practicas:
 - proveedor `Azure Foundry` integrado con `Responses API`
 - listado remoto de modelos para `Anthropic` y `OpenAI`
 - distribucion Windows validada end-to-end
+- distribucion portable Windows validada end-to-end
 - menu `Help` ajustado para distribucion propia sin `Report Issue`
 - ejecutable Windows unificado como `OMLCode.exe`
 - instalador Windows unificado como `OpenMLCodeSetup.exe`
+- artefacto portable Windows generado como `OpenMLCode-win32-x64-portable.zip`
+- welcome page inicial personalizada para `OpenML Code`
 - correccion aplicada para evitar un secreto real en tests del repo
 
 ## Documentacion adicional

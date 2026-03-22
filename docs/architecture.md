@@ -86,10 +86,13 @@ Responsabilidad:
 
 - `product.json` configurado con `quality`, `updateUrl`, `extensionsGallery`, `win32ExecutableName` y `win32SetupExeName`
 - scripts de release en `scripts/release/` para Windows, Linux y macOS
+- script de release portable en `scripts/release/package-win32-portable.ps1`
 - runbook operativo en `docs/distribution.md`
 - bundle local inicial de observabilidad via `collect-observability.ps1`
 - empaquetado Win32 validado con bundle `OMLCode.exe` e instalador `OpenMLCodeSetup.exe`
+- empaquetado portable Win32 validado con `OpenMLCode-win32-x64-portable.zip`
 - splash y welcome page alineados con branding de `OpenML Code`
+- Welcome Page inicial personalizada para la distribucion propia
 - menu `Help` ajustado para distribucion propia sin `Report Issue`
 
 ### Tooling y build
@@ -147,6 +150,7 @@ Responsabilidad:
 - integrar contexto profundo antes de cada llamada
 - manejar `Anthropic Messages API`
 - manejar `Azure Foundry Responses API`
+- manejar entradas multimodales de imagen y PDF en proveedores compatibles
 - filtrar el catalogo de modelos de `OpenAI` a familias utiles para chat/coding
 
 ### Secretos
@@ -249,9 +253,11 @@ El producto actual ya cubre:
 - build y arranque local validados
 - ejecutable `OMLCode.exe` en Windows
 - instalador `OpenMLCodeSetup.exe` en Windows
+- portable `OpenMLCode-win32-x64-portable.zip` en Windows
 - asistente builtin dentro del editor
 - proveedores locales y remotos
 - listado remoto de modelos para `Anthropic` y `OpenAI`
+- soporte multimodal de imagen y PDF en proveedores remotos compatibles
 - `streaming` de respuestas
 - `SecretStorage` para API keys
 - autodeteccion de modelos locales

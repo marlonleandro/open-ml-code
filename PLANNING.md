@@ -38,10 +38,12 @@ La estrategia sigue siendo de dos capas:
 - el runtime local de Electron ya se genera como `OMLCode.exe`
 - el bundle Win32 tambien se genera con `OMLCode.exe`
 - el instalador Win32 ya se genera como `OpenMLCodeSetup.exe`
+- la version portable Win32 ya se genera como `OpenMLCode-win32-x64-portable.zip`
 - el launcher `./scripts/code.bat` funciona para abrir el IDE y validar version
 - el branding tecnico principal esta aplicado en el fork
 - el tema por defecto ya usa la paleta `Prussian Blue`
 - el splash y la welcome page ya reflejan branding propio de `OpenML Code`
+- la Welcome Page inicial ya muestra una introduccion propia de `OpenML Code`
 - el menu `Help` de la distribucion propia ya no expone `Report Issue`
 
 ### Versionado
@@ -106,6 +108,7 @@ CustomIDE/
 - modos `agent`, `ask`, `edit`, `plan`
 - `streaming` de respuestas
 - soporte para `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter` y `Azure Foundry`
+- soporte multimodal para imagen y PDF en `OpenAI`, `Gemini`, `Anthropic` y `OpenRouter`
 - autodeteccion de modelos para `Ollama` y `LM Studio`
 - listado remoto de modelos para `Anthropic` y `OpenAI`
 - selector de proveedor y modelo desde la UI
@@ -189,8 +192,10 @@ Validaciones completadas:
 - `./scripts/code.bat --version`: OK
 - compilacion separada de `openml-vibe-assistant`: OK
 - `scripts/release/package-win32.ps1 -Arch x64 -Target user`: OK
+- `scripts/release/package-win32-portable.ps1 -Arch x64`: OK
 - bundle Win32 generado en `apps/VSCode-win32-x64`: OK
 - instalador Win32 generado en `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`: OK
+- portable Win32 generado en `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable.zip`: OK
 - pipeline Win32 endurecido para incluir `rg.exe` y binarios nativos requeridos por el runtime: OK
 
 ## 9. Roadmap actualizado
@@ -225,8 +230,25 @@ Estado: completada en su primera version funcional
 - instalador renombrado a `OpenMLCodeSetup.exe`
 - ejecutable Windows unificado como `OMLCode.exe`
 - base de `Open VSX`, `updateUrl` y observabilidad local ya integrada
+- version portable Win32 generada y lista para compartir via GitHub Releases
+- Welcome Page inicial personalizada para `OpenML Code`
 
-Estado: completada en su primera base operativa, con Windows validado
+Estado: completada y cerrada en su primera base operativa, con instalador y portable de Windows validados
+
+## 11. Cierre de etapa 1
+
+La primera etapa queda cerrada con estos entregables concretos:
+
+- fork funcional de `Code - OSS` con branding propio
+- `OpenML Assistant` builtin operativo
+- modos `agent`, `ask`, `edit` y `plan`
+- soporte multimodal de imagen y PDF para proveedores remotos compatibles
+- instalador Windows funcional
+- build portable Windows funcional
+- paquete `.vsix` para `Open VSX`
+- documentacion y scripts de release alineados con el estado real del producto
+
+La siguiente etapa ya se enfoca en calidad de experiencia, robustez del agente, distribucion avanzada y validacion con usuarios reales.
 
 ## 10. Riesgos y observaciones
 

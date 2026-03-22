@@ -17822,7 +17822,7 @@ if (typeof vscodeGlobal2 !== "undefined" && typeof vscodeGlobal2.context !== "un
     });
   }
 } else {
-  product = { "nameShort": "OpenML Code", "nameLong": "OpenML Code", "applicationName": "openml-code", "dataFolderName": ".openml-code", "win32MutexName": "openmlcode", "licenseName": "MIT", "licenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt", "serverLicenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt", "serverGreeting": [], "serverLicense": [], "serverLicensePrompt": "", "serverApplicationName": "openml-code-server", "serverDataFolderName": ".openml-code-server", "tunnelApplicationName": "openml-code-tunnel", "win32DirName": "OpenML Code", "win32NameVersion": "OpenML Code", "win32RegValueName": "OpenMLCode", "win32x64AppId": "{{7F7F6D7A-60F2-4D1A-9C06-5A8D9C9B1D31}", "win32arm64AppId": "{{EE4B6DA6-3D7D-4A7B-8F3D-A5110A8E97A4}", "win32x64UserAppId": "{{8AB3C6B2-79B0-466A-AE6D-EC4B8CC3CB7A}", "win32arm64UserAppId": "{{D79B2ED9-3A7B-48A6-91B1-2E4FD31D0D6B}", "win32AppUserModelId": "OpenML.Code", "win32ExecutableName": "OMLCode", "win32ShellNameShort": "OpenML &Code", "win32TunnelServiceMutex": "openmlcode-tunnelservice", "win32TunnelMutex": "openmlcode-tunnel", "darwinBundleIdentifier": "com.openml.code", "darwinProfileUUID": "4D8C7B8A-5B88-4E02-9ACB-0B1EF50D7C12", "darwinProfilePayloadUUID": "4B2D9B6A-12A4-4A55-A693-F0862A0A3F11", "linuxIconName": "openml-code", "licenseFileName": "LICENSE.txt", "reportIssueUrl": "", "nodejsRepository": "https://nodejs.org", "urlProtocol": "openml-code", "webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/", "builtInExtensions": [{ "name": "ms-vscode.js-debug-companion", "version": "1.1.3", "sha256": "7380a890787452f14b2db7835dfa94de538caf358ebc263f9d46dd68ac52de93", "repo": "https://github.com/microsoft/vscode-js-debug-companion", "metadata": { "id": "99cb0b7f-7354-4278-b8da-6cc79972169d", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }, { "name": "ms-vscode.js-debug", "version": "1.112.0", "sha256": "c24322931434940938f8cf76ebc3dac1e95a5539b9625b165b6672d7f7eafea8", "repo": "https://github.com/microsoft/vscode-js-debug", "metadata": { "id": "25629058-ddac-4e17-abba-74678e126c5d", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }, { "name": "ms-vscode.vscode-js-profile-table", "version": "1.0.10", "sha256": "7361748ddf9fd09d8a2ed1f2a2d7376a2cf9aae708692820b799708385c38e08", "repo": "https://github.com/microsoft/vscode-js-profile-visualizer", "metadata": { "id": "7e52b41b-71ad-457b-ab7e-0620f1fc4feb", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }], "quality": "stable", "extensionsGallery": { "serviceUrl": "https://open-vsx.org/vscode/gallery", "itemUrl": "https://open-vsx.org/vscode/item", "resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}", "publisherUrl": "https://open-vsx.org/publisher/{publisher}", "nlsBaseUrl": "https://open-vsx.org/vscode/gallery", "controlUrl": "" }, "updateUrl": "https://updates.openmlcode.dev/api/update", "win32ContextMenu": { "x64": { "clsid": "{2F4E7D5C-97B8-4C14-BB7B-9A9A1C8D2F11}" }, "arm64": { "clsid": "{7E38B7D2-0F8D-4F8C-A4F1-6A0E7E6B4C22}" } }, "win32SetupExeName": "OpenMLCodeSetup", "version": "1.95.0", "commit": "766a4515a1bed4a8fb945af6f4119947cef08a5b", "date": "2026-03-20T19:02:12-05:00" };
+  product = { "nameShort": "OpenML Code", "nameLong": "OpenML Code", "companyName": "Hyper System SAC", "copyright": "Copyright (C) 2026 Hyper System SAC. All rights reserved", "applicationName": "openml-code", "dataFolderName": ".openml-code", "win32MutexName": "openmlcode", "licenseName": "MIT", "licenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt", "serverLicenseUrl": "https://github.com/microsoft/vscode/blob/main/LICENSE.txt", "serverGreeting": [], "serverLicense": [], "serverLicensePrompt": "", "serverApplicationName": "openml-code-server", "serverDataFolderName": ".openml-code-server", "tunnelApplicationName": "openml-code-tunnel", "win32DirName": "OpenML Code", "win32NameVersion": "OpenML Code", "win32RegValueName": "OpenMLCode", "win32x64AppId": "{{7F7F6D7A-60F2-4D1A-9C06-5A8D9C9B1D31}", "win32arm64AppId": "{{EE4B6DA6-3D7D-4A7B-8F3D-A5110A8E97A4}", "win32x64UserAppId": "{{8AB3C6B2-79B0-466A-AE6D-EC4B8CC3CB7A}", "win32arm64UserAppId": "{{D79B2ED9-3A7B-48A6-91B1-2E4FD31D0D6B}", "win32AppUserModelId": "com.hypersystemsac.openml", "win32ExecutableName": "OMLCode", "win32ShellNameShort": "OpenML &Code", "win32TunnelServiceMutex": "openmlcode-tunnelservice", "win32TunnelMutex": "openmlcode-tunnel", "darwinBundleIdentifier": "com.hypersystemsac.openml", "darwinProfileUUID": "4D8C7B8A-5B88-4E02-9ACB-0B1EF50D7C12", "darwinProfilePayloadUUID": "4B2D9B6A-12A4-4A55-A693-F0862A0A3F11", "linuxIconName": "openml-code", "licenseFileName": "LICENSE.txt", "reportIssueUrl": "", "nodejsRepository": "https://nodejs.org", "urlProtocol": "openml-code", "webviewContentExternalBaseUrlTemplate": "https://{{uuid}}.vscode-cdn.net/insider/ef65ac1ba57f57f2a3961bfe94aa20481caca4c6/out/vs/workbench/contrib/webview/browser/pre/", "builtInExtensions": [{ "name": "ms-vscode.js-debug-companion", "version": "1.1.3", "sha256": "7380a890787452f14b2db7835dfa94de538caf358ebc263f9d46dd68ac52de93", "repo": "https://github.com/microsoft/vscode-js-debug-companion", "metadata": { "id": "99cb0b7f-7354-4278-b8da-6cc79972169d", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }, { "name": "ms-vscode.js-debug", "version": "1.112.0", "sha256": "c24322931434940938f8cf76ebc3dac1e95a5539b9625b165b6672d7f7eafea8", "repo": "https://github.com/microsoft/vscode-js-debug", "metadata": { "id": "25629058-ddac-4e17-abba-74678e126c5d", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }, { "name": "ms-vscode.vscode-js-profile-table", "version": "1.0.10", "sha256": "7361748ddf9fd09d8a2ed1f2a2d7376a2cf9aae708692820b799708385c38e08", "repo": "https://github.com/microsoft/vscode-js-profile-visualizer", "metadata": { "id": "7e52b41b-71ad-457b-ab7e-0620f1fc4feb", "publisherId": { "publisherId": "5f5636e7-69ed-4afe-b5d6-8d231fb3d3ee", "publisherName": "ms-vscode", "displayName": "Microsoft", "flags": "verified" }, "publisherDisplayName": "Microsoft" } }], "quality": "stable", "extensionsGallery": { "serviceUrl": "https://open-vsx.org/vscode/gallery", "itemUrl": "https://open-vsx.org/vscode/item", "resourceUrlTemplate": "https://open-vsx.org/vscode/unpkg/{publisher}/{name}/{version}/{path}", "publisherUrl": "https://open-vsx.org/publisher/{publisher}", "nlsBaseUrl": "https://open-vsx.org/vscode/gallery", "controlUrl": "" }, "updateUrl": "https://updates.openmlcode.dev/api/update", "win32ContextMenu": { "x64": { "clsid": "{2F4E7D5C-97B8-4C14-BB7B-9A9A1C8D2F11}" }, "arm64": { "clsid": "{7E38B7D2-0F8D-4F8C-A4F1-6A0E7E6B4C22}" } }, "win32SetupExeName": "OpenMLCodeSetup", "version": "1.95.0", "commit": "87b1dfc951c9c7d56a84835f8afd3dbb3660108c", "date": "2026-03-21T01:38:30-05:00" };
   if (Object.keys(product).length === 0) {
     Object.assign(product, {
       version: "1.104.0-dev",
@@ -32999,8 +32999,8 @@ var extensionKindSchema = {
     "workspace"
   ],
   enumDescriptions: [
-    localize(17288, null),
-    localize(17368, null)
+    localize(17287, null),
+    localize(17367, null)
   ]
 };
 var schemaId = "vscode://schemas/vscode-extensions";
@@ -33008,25 +33008,25 @@ var schema = {
   properties: {
     engines: {
       type: "object",
-      description: localize(17352, null),
+      description: localize(17351, null),
       properties: {
         "vscode": {
           type: "string",
-          description: localize(17353, null),
+          description: localize(17352, null),
           default: "^1.105.0"
         }
       }
     },
     publisher: {
-      description: localize(17364, null),
+      description: localize(17363, null),
       type: "string"
     },
     displayName: {
-      description: localize(17349, null),
+      description: localize(17348, null),
       type: "string"
     },
     categories: {
-      description: localize(17343, null),
+      description: localize(17342, null),
       type: "array",
       uniqueItems: true,
       items: {
@@ -33038,28 +33038,28 @@ var schema = {
           {
             type: "string",
             const: "Languages",
-            deprecationMessage: localize(17344, null)
+            deprecationMessage: localize(17343, null)
           }
         ]
       }
     },
     galleryBanner: {
       type: "object",
-      description: localize(17356, null),
+      description: localize(17355, null),
       properties: {
         color: {
-          description: localize(17357, null),
+          description: localize(17356, null),
           type: "string"
         },
         theme: {
-          description: localize(17358, null),
+          description: localize(17357, null),
           type: "string",
           enum: ["dark", "light"]
         }
       }
     },
     contributes: {
-      description: localize(17345, null),
+      description: localize(17344, null),
       type: "object",
       // eslint-disable-next-line local/code-no-any-casts
       properties: {
@@ -33069,14 +33069,14 @@ var schema = {
     },
     preview: {
       type: "boolean",
-      description: localize(17362, null)
+      description: localize(17361, null)
     },
     enableProposedApi: {
       type: "boolean",
-      deprecationMessage: localize(17351, null)
+      deprecationMessage: localize(17350, null)
     },
     enabledApiProposals: {
-      markdownDescription: localize(17350, null),
+      markdownDescription: localize(17349, null),
       type: "array",
       uniqueItems: true,
       items: {
@@ -33086,182 +33086,182 @@ var schema = {
       }
     },
     api: {
-      markdownDescription: localize(17323, null),
+      markdownDescription: localize(17322, null),
       type: "string",
       enum: ["none"],
       enumDescriptions: [
-        localize(17324, null)
+        localize(17323, null)
       ]
     },
     activationEvents: {
-      description: localize(17289, null),
+      description: localize(17288, null),
       type: "array",
       items: {
         type: "string",
         defaultSnippets: [
           {
             label: "onWebviewPanel",
-            description: localize(17320, null),
+            description: localize(17319, null),
             body: "onWebviewPanel:viewType"
           },
           {
             label: "onLanguage",
-            description: localize(17303, null),
+            description: localize(17302, null),
             body: "onLanguage:${1:languageId}"
           },
           {
             label: "onCommand",
-            description: localize(17293, null),
+            description: localize(17292, null),
             body: "onCommand:${2:commandId}"
           },
           {
             label: "onDebug",
-            description: localize(17295, null),
+            description: localize(17294, null),
             body: "onDebug"
           },
           {
             label: "onDebugInitialConfigurations",
-            description: localize(17298, null),
+            description: localize(17297, null),
             body: "onDebugInitialConfigurations"
           },
           {
             label: "onDebugDynamicConfigurations",
-            description: localize(17297, null),
+            description: localize(17296, null),
             body: "onDebugDynamicConfigurations"
           },
           {
             label: "onDebugResolve",
-            description: localize(17299, null),
+            description: localize(17298, null),
             body: "onDebugResolve:${6:type}"
           },
           {
             label: "onDebugAdapterProtocolTracker",
-            description: localize(17296, null),
+            description: localize(17295, null),
             body: "onDebugAdapterProtocolTracker:${6:type}"
           },
           {
             label: "workspaceContains",
-            description: localize(17322, null),
+            description: localize(17321, null),
             body: "workspaceContains:${4:filePattern}"
           },
           {
             label: "onStartupFinished",
-            description: localize(17311, null),
+            description: localize(17310, null),
             body: "onStartupFinished"
           },
           {
             label: "onTaskType",
-            description: localize(17312, null),
+            description: localize(17311, null),
             body: "onTaskType:${1:taskType}"
           },
           {
             label: "onFileSystem",
-            description: localize(17301, null),
+            description: localize(17300, null),
             body: "onFileSystem:${1:scheme}"
           },
           {
             label: "onEditSession",
-            description: localize(17300, null),
+            description: localize(17299, null),
             body: "onEditSession:${1:scheme}"
           },
           {
             label: "onSearch",
-            description: localize(17310, null),
+            description: localize(17309, null),
             body: "onSearch:${7:scheme}"
           },
           {
             label: "onView",
             body: "onView:${5:viewId}",
-            description: localize(17318, null)
+            description: localize(17317, null)
           },
           {
             label: "onUri",
             body: "onUri",
-            description: localize(17317, null)
+            description: localize(17316, null)
           },
           {
             label: "onOpenExternalUri",
             body: "onOpenExternalUri",
-            description: localize(17308, null)
+            description: localize(17307, null)
           },
           {
             label: "onCustomEditor",
             body: "onCustomEditor:${9:viewType}",
-            description: localize(17294, null)
+            description: localize(17293, null)
           },
           {
             label: "onNotebook",
             body: "onNotebook:${1:type}",
-            description: localize(17307, null)
+            description: localize(17306, null)
           },
           {
             label: "onAuthenticationRequest",
             body: "onAuthenticationRequest:${11:authenticationProviderId}",
-            description: localize(17290, null)
+            description: localize(17289, null)
           },
           {
             label: "onRenderer",
-            description: localize(17309, null),
+            description: localize(17308, null),
             body: "onRenderer:${11:rendererId}"
           },
           {
             label: "onTerminalProfile",
             body: "onTerminalProfile:${1:terminalId}",
-            description: localize(17314, null)
+            description: localize(17313, null)
           },
           {
             label: "onTerminalQuickFixRequest",
             body: "onTerminalQuickFixRequest:${1:quickFixId}",
-            description: localize(17315, null)
+            description: localize(17314, null)
           },
           {
             label: "onWalkthrough",
             body: "onWalkthrough:${1:walkthroughID}",
-            description: localize(17319, null)
+            description: localize(17318, null)
           },
           {
             label: "onIssueReporterOpened",
             body: "onIssueReporterOpened",
-            description: localize(17302, null)
+            description: localize(17301, null)
           },
           {
             label: "onChatParticipant",
             body: "onChatParticipant:${1:participantId}",
-            description: localize(17292, null)
+            description: localize(17291, null)
           },
           {
             label: "onChatContextProvider",
             body: "onChatContextProvider:${1:contextProviderId}",
-            description: localize(17291, null)
+            description: localize(17290, null)
           },
           {
             label: "onLanguageModelChatProvider",
             body: "onLanguageModelChatProvider:${1:vendor}",
-            description: localize(17304, null)
+            description: localize(17303, null)
           },
           {
             label: "onLanguageModelTool",
             body: "onLanguageModelTool:${1:toolId}",
-            description: localize(17305, null)
+            description: localize(17304, null)
           },
           {
             label: "onTerminal",
             body: "onTerminal:{1:shellType}",
-            description: localize(17313, null)
+            description: localize(17312, null)
           },
           {
             label: "onTerminalShellIntegration",
             body: "onTerminalShellIntegration:${1:shellType}",
-            description: localize(17316, null)
+            description: localize(17315, null)
           },
           {
             label: "onMcpCollection",
-            description: localize(17306, null),
+            description: localize(17305, null),
             body: "onMcpCollection:${2:collectionId}"
           },
           {
             label: "*",
-            description: localize(17321, null),
+            description: localize(17320, null),
             body: "*"
           }
         ]
@@ -33269,35 +33269,35 @@ var schema = {
     },
     badges: {
       type: "array",
-      description: localize(17325, null),
+      description: localize(17324, null),
       items: {
         type: "object",
         required: ["url", "href", "description"],
         properties: {
           url: {
             type: "string",
-            description: localize(17328, null)
+            description: localize(17327, null)
           },
           href: {
             type: "string",
-            description: localize(17327, null)
+            description: localize(17326, null)
           },
           description: {
             type: "string",
-            description: localize(17326, null)
+            description: localize(17325, null)
           }
         }
       }
     },
     markdown: {
       type: "string",
-      description: localize(17361, null),
+      description: localize(17360, null),
       enum: ["github", "standard"],
       default: "github"
     },
     qna: {
       default: "marketplace",
-      description: localize(17365, null),
+      description: localize(17364, null),
       anyOf: [
         {
           type: ["string", "boolean"],
@@ -33309,15 +33309,6 @@ var schema = {
       ]
     },
     extensionDependencies: {
-      description: localize(17355, null),
-      type: "array",
-      uniqueItems: true,
-      items: {
-        type: "string",
-        pattern: EXTENSION_IDENTIFIER_PATTERN
-      }
-    },
-    extensionAffinity: {
       description: localize(17354, null),
       type: "array",
       uniqueItems: true,
@@ -33326,8 +33317,17 @@ var schema = {
         pattern: EXTENSION_IDENTIFIER_PATTERN
       }
     },
+    extensionAffinity: {
+      description: localize(17353, null),
+      type: "array",
+      uniqueItems: true,
+      items: {
+        type: "string",
+        pattern: EXTENSION_IDENTIFIER_PATTERN
+      }
+    },
     extensionPack: {
-      description: localize(17346, null),
+      description: localize(17345, null),
       type: "array",
       uniqueItems: true,
       items: {
@@ -33336,39 +33336,39 @@ var schema = {
       }
     },
     extensionKind: {
-      description: localize(17281, null),
+      description: localize(17280, null),
       type: "array",
       items: extensionKindSchema,
       default: ["workspace"],
       defaultSnippets: [
         {
           body: ["ui"],
-          description: localize(17283, null)
+          description: localize(17282, null)
         },
         {
           body: ["workspace"],
-          description: localize(17285, null)
-        },
-        {
-          body: ["ui", "workspace"],
           description: localize(17284, null)
         },
         {
+          body: ["ui", "workspace"],
+          description: localize(17283, null)
+        },
+        {
           body: ["workspace", "ui"],
-          description: localize(17286, null)
+          description: localize(17285, null)
         },
         {
           body: [],
-          description: localize(17282, null)
+          description: localize(17281, null)
         }
       ]
     },
     capabilities: {
-      description: localize(17329, null),
+      description: localize(17328, null),
       type: "object",
       properties: {
         virtualWorkspaces: {
-          description: localize(17337, null),
+          description: localize(17336, null),
           type: ["boolean", "object"],
           defaultSnippets: [
             { label: "limited", body: { supported: "${1:limited}", description: "${2}" } },
@@ -33377,23 +33377,23 @@ var schema = {
           default: true.valueOf,
           properties: {
             supported: {
-              markdownDescription: localize(17339, null),
+              markdownDescription: localize(17338, null),
               type: ["string", "boolean"],
               enum: ["limited", true, false],
               enumDescriptions: [
+                localize(17340, null),
                 localize(17341, null),
-                localize(17342, null),
-                localize(17340, null)
+                localize(17339, null)
               ]
             },
             description: {
               type: "string",
-              markdownDescription: localize(17338, null)
+              markdownDescription: localize(17337, null)
             }
           }
         },
         untrustedWorkspaces: {
-          description: localize(17330, null),
+          description: localize(17329, null),
           type: "object",
           required: ["supported"],
           defaultSnippets: [
@@ -33401,17 +33401,17 @@ var schema = {
           ],
           properties: {
             supported: {
-              markdownDescription: localize(17333, null),
+              markdownDescription: localize(17332, null),
               type: ["string", "boolean"],
               enum: ["limited", true, false],
               enumDescriptions: [
+                localize(17334, null),
                 localize(17335, null),
-                localize(17336, null),
-                localize(17334, null)
+                localize(17333, null)
               ]
             },
             restrictedConfigurations: {
-              description: localize(17332, null),
+              description: localize(17331, null),
               type: "array",
               items: {
                 type: "string"
@@ -33419,21 +33419,21 @@ var schema = {
             },
             description: {
               type: "string",
-              markdownDescription: localize(17331, null)
+              markdownDescription: localize(17330, null)
             }
           }
         }
       }
     },
     sponsor: {
-      description: localize(17347, null),
+      description: localize(17346, null),
       type: "object",
       defaultSnippets: [
         { body: { url: "${1:https:}" } }
       ],
       properties: {
         "url": {
-          description: localize(17348, null),
+          description: localize(17347, null),
           type: "string"
         }
       }
@@ -33442,26 +33442,26 @@ var schema = {
       type: "object",
       properties: {
         "vscode:prepublish": {
-          description: localize(17366, null),
+          description: localize(17365, null),
           type: "string"
         },
         "vscode:uninstall": {
-          description: localize(17367, null),
+          description: localize(17366, null),
           type: "string"
         }
       }
     },
     icon: {
       type: "string",
-      description: localize(17359, null)
+      description: localize(17358, null)
     },
     l10n: {
       type: "string",
-      description: localize(17360, null)
+      description: localize(17359, null)
     },
     pricing: {
       type: "string",
-      markdownDescription: localize(17363, null),
+      markdownDescription: localize(17362, null),
       enum: ["Free", "Trial"],
       default: "Free"
     }
@@ -33497,7 +33497,7 @@ schemaRegistry.registerSchema(schemaId, schema);
 schemaRegistry.registerSchema(productSchemaId, {
   properties: {
     extensionEnabledApiProposals: {
-      description: localize(17287, null),
+      description: localize(17286, null),
       type: "object",
       properties: {},
       additionalProperties: {
@@ -35256,7 +35256,7 @@ var ChatEntitlementRequests = class extends Disposable {
     };
     const response = await this.request(defaultChatAgent.entitlementSignupLimitedUrl, "POST", body, sessions, CancellationToken.None, "chatEntitlementService.signUpFree");
     if (!response) {
-      const retry2 = await this.onUnknownSignUpError(localize(17028, null), "[chat entitlement] sign-up: no response");
+      const retry2 = await this.onUnknownSignUpError(localize(17027, null), "[chat entitlement] sign-up: no response");
       return retry2 ? this.doSignUpFree(sessions) : { errorCode: 1 };
     }
     if (response.res.statusCode && response.res.statusCode !== 200) {
@@ -35273,7 +35273,7 @@ var ChatEntitlementRequests = class extends Disposable {
         } catch (error) {
         }
       }
-      const retry2 = await this.onUnknownSignUpError(localize(17029, null, response.res.statusCode), `[chat entitlement] sign-up: unexpected status code ${response.res.statusCode}`);
+      const retry2 = await this.onUnknownSignUpError(localize(17028, null, response.res.statusCode), `[chat entitlement] sign-up: unexpected status code ${response.res.statusCode}`);
       return retry2 ? this.doSignUpFree(sessions) : { errorCode: response.res.statusCode };
     }
     let responseText = null;
@@ -35282,7 +35282,7 @@ var ChatEntitlementRequests = class extends Disposable {
     } catch (error) {
     }
     if (!responseText) {
-      const retry2 = await this.onUnknownSignUpError(localize(17027, null), "[chat entitlement] sign-up: response has no content");
+      const retry2 = await this.onUnknownSignUpError(localize(17026, null), "[chat entitlement] sign-up: response has no content");
       return retry2 ? this.doSignUpFree(sessions) : { errorCode: 2 };
     }
     let parsedResult = void 0;
@@ -35290,7 +35290,7 @@ var ChatEntitlementRequests = class extends Disposable {
       parsedResult = JSON.parse(responseText);
       this.logService.trace(`[chat entitlement] sign-up: response is ${responseText}`);
     } catch (err) {
-      const retry2 = await this.onUnknownSignUpError(localize(17026, null), `[chat entitlement] sign-up: error parsing response (${err})`);
+      const retry2 = await this.onUnknownSignUpError(localize(17025, null), `[chat entitlement] sign-up: error parsing response (${err})`);
       return retry2 ? this.doSignUpFree(sessions) : { errorCode: 3 };
     }
     this.update({ entitlement: 5 /* Free */ });
@@ -35312,9 +35312,9 @@ var ChatEntitlementRequests = class extends Disposable {
     if (!this.lifecycleService.willShutdown) {
       const { confirmed } = await this.dialogService.confirm({
         type: severity_default.Error,
-        message: localize(17030, null),
+        message: localize(17029, null),
         detail,
-        primaryButton: localize(17025, null)
+        primaryButton: localize(17024, null)
       });
       return confirmed;
     }
@@ -35325,16 +35325,16 @@ var ChatEntitlementRequests = class extends Disposable {
     if (!this.lifecycleService.willShutdown) {
       this.dialogService.prompt({
         type: severity_default.Error,
-        message: localize(17031, null),
+        message: localize(17030, null),
         detail: logDetails,
         buttons: [
           {
-            label: localize(17019, null),
+            label: localize(17018, null),
             run: () => {
             }
           },
           {
-            label: localize(17018, null),
+            label: localize(17017, null),
             run: () => this.openerService.open(URI.parse(defaultChatAgent.upgradePlanUrl))
           }
         ]
@@ -56962,7 +56962,7 @@ var QueryBuilder = class {
       } else {
         const probableWorkspaceFolderNameMatch = searchPath.match(/\.[\/\\](.+)[\/\\]?/);
         const probableWorkspaceFolderName = probableWorkspaceFolderNameMatch ? probableWorkspaceFolderNameMatch[1] : searchPath;
-        const searchPathNotFoundError = localize(17561, null, probableWorkspaceFolderName);
+        const searchPathNotFoundError = localize(17560, null, probableWorkspaceFolderName);
         throw new Error(searchPathNotFoundError);
       }
     }
@@ -63578,7 +63578,7 @@ var AbstractVariableResolverService = class {
       if (filePath) {
         return normalizeDriveLetter(filePath);
       }
-      throw new VariableError(variableKind, localize(17101, null, replacement.id));
+      throw new VariableError(variableKind, localize(17100, null, replacement.id));
     };
     const getFolderPathForFile = (variableKind) => {
       const filePath = getFilePath2(variableKind);
@@ -63588,7 +63588,7 @@ var AbstractVariableResolverService = class {
           return normalizeDriveLetter(folderPath);
         }
       }
-      throw new VariableError(variableKind, localize(17102, null, replacement.id, basename(filePath)));
+      throw new VariableError(variableKind, localize(17101, null, replacement.id, basename(filePath)));
     };
     const getFolderUri = (variableKind) => {
       if (argument) {
@@ -63596,15 +63596,15 @@ var AbstractVariableResolverService = class {
         if (folder) {
           return folder;
         }
-        throw new VariableError(variableKind, localize(17099, null, variableKind, argument));
+        throw new VariableError(variableKind, localize(17098, null, variableKind, argument));
       }
       if (folderUri) {
         return folderUri;
       }
       if (this._context.getWorkspaceFolderCount() > 1) {
-        throw new VariableError(variableKind, localize(17107, null, variableKind));
+        throw new VariableError(variableKind, localize(17106, null, variableKind));
       }
-      throw new VariableError(variableKind, localize(17106, null, variableKind));
+      throw new VariableError(variableKind, localize(17105, null, variableKind));
     };
     switch (variable) {
       case "env":
@@ -63617,19 +63617,19 @@ var AbstractVariableResolverService = class {
           }
           return "";
         }
-        throw new VariableError("env" /* Env */, localize(17112, null, replacement.id));
+        throw new VariableError("env" /* Env */, localize(17111, null, replacement.id));
       case "config":
         if (argument) {
           const config = this._context.getConfigurationValue(folderUri, argument);
           if (isUndefinedOrNull(config)) {
-            throw new VariableError("config" /* Config */, localize(17109, null, replacement.id, argument));
+            throw new VariableError("config" /* Config */, localize(17108, null, replacement.id, argument));
           }
           if (isObject(config)) {
-            throw new VariableError("config" /* Config */, localize(17108, null, replacement.id, argument));
+            throw new VariableError("config" /* Config */, localize(17107, null, replacement.id, argument));
           }
           return config;
         }
-        throw new VariableError("config" /* Config */, localize(17111, null, replacement.id));
+        throw new VariableError("config" /* Config */, localize(17110, null, replacement.id));
       case "command":
         return this.resolveFromMap("command" /* Command */, replacement.id, argument, commandValueMapping, "command");
       case "input":
@@ -63638,11 +63638,11 @@ var AbstractVariableResolverService = class {
         if (argument) {
           const ext = await this._context.getExtension(argument);
           if (!ext) {
-            throw new VariableError("extensionInstallFolder" /* ExtensionInstallFolder */, localize(17110, null, replacement.id, argument));
+            throw new VariableError("extensionInstallFolder" /* ExtensionInstallFolder */, localize(17109, null, replacement.id, argument));
           }
           return this.fsPath(ext.extensionLocation);
         }
-        throw new VariableError("extensionInstallFolder" /* ExtensionInstallFolder */, localize(17113, null, replacement.id));
+        throw new VariableError("extensionInstallFolder" /* ExtensionInstallFolder */, localize(17112, null, replacement.id));
       default: {
         switch (variable) {
           case "workspaceRoot":
@@ -63666,27 +63666,27 @@ var AbstractVariableResolverService = class {
             if (environment.userHome) {
               return environment.userHome;
             }
-            throw new VariableError("userHome" /* UserHome */, localize(17105, null, replacement.id));
+            throw new VariableError("userHome" /* UserHome */, localize(17104, null, replacement.id));
           case "lineNumber": {
             const lineNumber = this._context.getLineNumber();
             if (lineNumber) {
               return lineNumber;
             }
-            throw new VariableError("lineNumber" /* LineNumber */, localize(17103, null, replacement.id));
+            throw new VariableError("lineNumber" /* LineNumber */, localize(17102, null, replacement.id));
           }
           case "columnNumber": {
             const columnNumber = this._context.getColumnNumber();
             if (columnNumber) {
               return columnNumber;
             }
-            throw new Error(localize(17100, null, replacement.id));
+            throw new Error(localize(17099, null, replacement.id));
           }
           case "selectedText": {
             const selectedText = this._context.getSelectedText();
             if (selectedText) {
               return selectedText;
             }
-            throw new VariableError("selectedText" /* SelectedText */, localize(17104, null, replacement.id));
+            throw new VariableError("selectedText" /* SelectedText */, localize(17103, null, replacement.id));
           }
           case "file":
             return getFilePath2("file" /* File */);
@@ -63753,7 +63753,7 @@ var AbstractVariableResolverService = class {
       if (typeof v === "string") {
         return v;
       }
-      throw new VariableError(variableKind, localize(17114, null, match2));
+      throw new VariableError(variableKind, localize(17113, null, match2));
     }
     return match2;
   }
@@ -89879,7 +89879,7 @@ var editorAssociationsConfigurationNode = {
   properties: {
     "workbench.editorAssociations": {
       type: "object",
-      markdownDescription: localize(17161, null),
+      markdownDescription: localize(17160, null),
       additionalProperties: {
         type: "string"
       }
@@ -102813,8 +102813,8 @@ var TUNNELS_TO_RESTORE = "remote.tunnels.toRestore";
 var TUNNELS_TO_RESTORE_EXPIRATION = "remote.tunnels.toRestoreExpiration";
 var RESTORE_EXPIRATION_TIME = 1e3 * 60 * 60 * 24 * 14;
 var ACTIVATION_EVENT = "onTunnel";
-var forwardedPortsFeaturesEnabled = new RawContextKey("forwardedPortsViewEnabled", false, localize(17553, null));
-var forwardedPortsViewEnabled = new RawContextKey("forwardedPortsViewOnlyEnabled", false, localize(17553, null));
+var forwardedPortsFeaturesEnabled = new RawContextKey("forwardedPortsViewEnabled", false, localize(17552, null));
+var forwardedPortsViewEnabled = new RawContextKey("forwardedPortsViewOnlyEnabled", false, localize(17552, null));
 function parseAddress(address) {
   const matches = address.match(/^([a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)*:)?([0-9]+)$/);
   if (!matches) {
@@ -102824,11 +102824,11 @@ function parseAddress(address) {
 }
 var UserTunnelSource = {
   source: 0 /* User */,
-  description: localize(17555, null)
+  description: localize(17554, null)
 };
 var AutoTunnelSource = {
   source: 1 /* Auto */,
-  description: localize(17554, null)
+  description: localize(17553, null)
 };
 function mapHasAddress(map, host, port) {
   const initialAddress = map.get(makeAddress(host, port));
@@ -103324,7 +103324,7 @@ var TunnelModel = class extends Disposable {
     }
     this.mismatchCooldown = newCooldown;
     const mismatchString = localize(
-      17552,
+      17551,
       null,
       expectedLocal,
       tunnel.tunnelRemotePort,
@@ -103485,7 +103485,7 @@ var TunnelModel = class extends Disposable {
           privacy: "constantPrivate" /* ConstantPrivate */,
           source: {
             source: 2 /* Extension */,
-            description: localize(17556, null)
+            description: localize(17555, null)
           }
         });
         this.tunnelService.setEnvironmentTunnel(tunnel.remoteAddress.host, tunnel.remoteAddress.port, localAddress, "constantPrivate" /* ConstantPrivate */, "http" /* Http */);

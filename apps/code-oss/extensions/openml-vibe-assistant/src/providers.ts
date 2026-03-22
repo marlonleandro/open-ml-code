@@ -4,6 +4,7 @@ import { getProviderSecret } from './secrets';
 
 export type ProviderId = 'ollama' | 'lmstudio' | 'openai' | 'gemini' | 'anthropic' | 'openrouter' | 'azurefoundry';
 export type AssistantMode = 'agent' | 'ask' | 'edit' | 'plan';
+export type AttachmentKind = 'image' | 'pdf';
 
 const DEFAULT_REQUEST_TIMEOUT_MS = 300000;
 const DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS = 28000;
@@ -19,6 +20,15 @@ export interface WorkspacePrompt {
 	extraContext?: string;
 	systemPrompt: string;
 	mode?: AssistantMode;
+	attachments?: PromptAttachment[];
+}
+
+export interface PromptAttachment {
+	name: string;
+	mimeType: string;
+	kind: AttachmentKind;
+	byteSize?: number;
+	base64Data?: string;
 }
 
 export type ProviderResponse = {
@@ -81,6 +91,67 @@ function requireValue(value: string, label: string): string {
 	}
 
 	return value;
+}
+
+function getAttachmentLabel(kind: AttachmentKind): string {
+	switch (kind) {
+		case 'image': return 'imagen';
+		case 'pdf': return 'PDF';
+		default: return 'PDF';
+	}
+}
+
+function getAttachmentKinds(input: WorkspacePrompt): AttachmentKind[] {
+	return [...new Set((input.attachments ?? []).map(attachment => attachment.kind))];
+}
+
+function formatAttachmentKinds(kinds: AttachmentKind[]): string {
+	return kinds.map(getAttachmentLabel).join(', ');
+}
+
+function assertProviderSupportsAttachments(provider: ProviderId, input: WorkspacePrompt): void {
+	const kinds = getAttachmentKinds(input);
+	if (!kinds.length) {
+		return;
+	}
+
+	switch (provider) {
+		case 'gemini':
+		case 'anthropic':
+		case 'openrouter':
+			return;
+		case 'openai': {
+			const unsupportedKinds = kinds.filter(kind => kind !== 'image' && kind !== 'pdf');
+			if (unsupportedKinds.length) {
+				throw new Error(`El modelo no soporta archivos del tipo ${formatAttachmentKinds(unsupportedKinds)}.`);
+			}
+
+			const oversizeImage = (input.attachments ?? []).find(attachment => attachment.kind === 'image' && (attachment.byteSize ?? 0) > 2 * 1024 * 1024);
+			if (oversizeImage) {
+				throw new Error(`La imagen adjunta ${oversizeImage.name} supera el limite de 2 MB soportado por OpenAI.`);
+			}
+			return;
+		}
+		default: {
+			throw new Error(`El modelo no soporta archivos del tipo ${formatAttachmentKinds(kinds)}.`);
+		}
+	}
+}
+
+function isAttachmentSupportError(error: unknown): boolean {
+	if (!(error instanceof Error)) {
+		return false;
+	}
+
+	return /unsupported|not supported|does not support|invalid.+(file|attachment|document|image|pdf|mime)|unsupported.+(file|attachment|document|image|pdf)|cannot process.+(file|attachment|document|image|pdf)|media type|mime type|document type|image input|vision is not enabled|file uploads? are not supported/i.test(error.message);
+}
+
+function normalizeAttachmentError(input: WorkspacePrompt, error: unknown): never {
+	if (input.attachments?.length && isAttachmentSupportError(error)) {
+		throw new Error(`El modelo no soporta archivos del tipo ${formatAttachmentKinds(getAttachmentKinds(input))}.`);
+	}
+
+	throw error;
 }
 
 function buildHeaders(apiKey?: string, extraHeaders?: Record<string, string>): Record<string, string> {
@@ -261,6 +332,31 @@ function getModeInstructions(mode: AssistantMode): string[] {
 	}
 }
 
+function getAttachmentInstructions(input: WorkspacePrompt): string[] {
+	if (!(input.attachments?.length)) {
+		return [];
+	}
+
+	const attachmentSummary = input.attachments
+		.map(attachment => `${attachment.name} (${attachment.mimeType})`)
+		.join(', ');
+
+	const lines = [
+		`Attached files available to analyze: ${attachmentSummary}.`,
+		'Use the attached files as source material for your answer.',
+		'Do not ignore the attachments.'
+	];
+
+	if (input.mode === 'agent' || input.mode === 'edit') {
+		lines.push('If the user is asking to create, modify, implement, scaffold, or adapt code based on the attached files, you must return a complete openml-edit proposal with full file contents.');
+		lines.push('Use the attached files as source of truth for layout, structure, visual design, requirements, and extracted details.');
+		lines.push('Do not stop at describing the attached files when the user is asking for implementation work.');
+		lines.push('If the user is only asking to analyze, summarize, extract, or describe the attached files, answer normally in Markdown without forcing openml-edit.');
+	}
+
+	return lines;
+}
+
 function createUserPrompt(input: WorkspacePrompt): string {
 	const mode = input.mode ?? 'agent';
 	const contextLines = [
@@ -272,6 +368,7 @@ function createUserPrompt(input: WorkspacePrompt): string {
 
 	return [
 		...getModeInstructions(mode),
+		...getAttachmentInstructions(input),
 		'',
 		'User request:',
 		input.prompt,
@@ -325,6 +422,10 @@ function isAllowedOpenAIModel(modelId: string): boolean {
 	return hasKnownSize || /^gpt-4(?:[.-]|$)/.test(id) || /^gpt-4o(?:[.-]|$)/.test(id) || /^gpt-5(?:[.-]|$)/.test(id);
 }
 
+function usesOpenAIResponsesApi(modelId: string): boolean {
+	return /^gpt-5(?:[.-]|$)/i.test(modelId.trim());
+}
+
 function buildAnthropicMessagesUrl(baseUrl: string): string {
 	const normalized = baseUrl.trim().replace(/\/$/, '');
 	if (normalized.endsWith('/messages')) {
@@ -373,6 +474,11 @@ function buildAzureFoundryHeaders(apiKey: string, authMode: string): Record<stri
 	return authMode === 'api-key'
 		? { 'Content-Type': 'application/json', 'api-key': apiKey }
 		: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
+}
+
+function buildOpenAIResponsesUrl(baseUrl: string): string {
+	const normalized = baseUrl.trim().replace(/\/$/, '');
+	return normalized.endsWith('/responses') ? normalized : `${normalized}/responses`;
 }
 
 function extractTextFromResponseContent(content: unknown): string {
@@ -458,6 +564,45 @@ async function callAzureFoundry(input: WorkspacePrompt): Promise<ProviderRespons
 	return { text, model: deployment };
 }
 
+async function callOpenAIResponses(input: WorkspacePrompt): Promise<ProviderResponse> {
+	const baseUrl = requireValue(getString('openai.baseUrl', 'https://api.openai.com/v1'), 'openmlAssistant.openai.baseUrl');
+	const apiKey = requireValue(await getProviderSecret('openai'), 'OpenAI API key');
+	const model = normalizeOpenAIModel(requireValue(getString('openai.model'), 'openmlAssistant.openai.model'));
+	const json = await postJson(buildOpenAIResponsesUrl(baseUrl), {
+		model,
+		instructions: input.systemPrompt,
+		input: [{
+			role: 'user',
+			content: [
+				{ type: 'input_text', text: createUserPrompt(input) },
+				...(input.attachments ?? [])
+					.filter(attachment => attachment.kind === 'image')
+					.map(attachment => ({
+						type: 'input_image',
+						image_url: `data:${attachment.mimeType};base64,${attachment.base64Data ?? ''}`
+					})),
+				...(input.attachments ?? [])
+					.filter(attachment => attachment.kind === 'pdf')
+					.map(attachment => ({
+						type: 'input_file',
+						filename: attachment.name,
+						file_data: `data:${attachment.mimeType};base64,${attachment.base64Data ?? ''}`
+					}))
+			]
+		}],
+		max_output_tokens: getNumber('openai.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+	}, {
+		headers: buildHeaders(apiKey)
+	});
+
+	const text = extractResponsesApiText(json);
+	if (!text) {
+		throw new Error('OpenAI response did not include visible text content.');
+	}
+
+	return { text, model };
+}
+
 export function getActiveProvider(): ProviderId {
 	return getConfig().get<ProviderId>('provider', 'ollama');
 }
@@ -533,16 +678,93 @@ async function streamOpenAICompatible(baseUrl: string, model: string, input: Wor
 	return result;
 }
 
+async function streamOpenRouter(input: WorkspacePrompt, callbacks: StreamCallbacks): Promise<ProviderResponse> {
+	const baseUrl = requireValue(getString('openRouter.baseUrl', 'https://openrouter.ai/api/v1'), 'openmlAssistant.openRouter.baseUrl');
+	const apiKey = requireValue(await getProviderSecret('openrouter'), 'OpenRouter API key');
+	const model = requireValue(getString('openRouter.model'), 'openmlAssistant.openRouter.model');
+	const extraHeaders = {
+		'HTTP-Referer': getString('openRouter.siteUrl', 'https://openml-code.local'),
+		'X-Title': getString('openRouter.appName', 'OpenML Code')
+	};
+	const hasBinaryAttachments = (input.attachments ?? []).length > 0;
+
+	if (!hasBinaryAttachments) {
+		return streamOpenAICompatible(baseUrl, model, input, callbacks, apiKey, extraHeaders, {
+			temperature: 0.2,
+			maxTokens: getNumber('openRouter.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+		});
+	}
+
+	const response = await postStream(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+		model,
+		stream: true,
+		messages: [{
+			role: 'user',
+			content: [
+				{ type: 'text', text: createUserPrompt(input) },
+				...(input.attachments ?? [])
+					.filter(attachment => attachment.kind === 'image')
+					.map(attachment => ({
+						type: 'image_url',
+						image_url: {
+							url: `data:${attachment.mimeType};base64,${attachment.base64Data ?? ''}`
+						}
+					})),
+				...(input.attachments ?? [])
+					.filter(attachment => attachment.kind === 'pdf')
+					.map(attachment => ({
+						type: 'file',
+						file: {
+							filename: attachment.name,
+							file_data: `data:${attachment.mimeType};base64,${attachment.base64Data ?? ''}`
+						}
+					}))
+			]
+		}],
+		temperature: 0.2,
+		max_tokens: getNumber('openRouter.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+	}, {
+		headers: buildHeaders(apiKey, extraHeaders)
+	});
+
+	const text = await readSseStream(response, json => {
+		const delta = json?.choices?.[0]?.delta?.content;
+		if (typeof delta === 'string' && delta) {
+			callbacks.onDelta(delta);
+			return delta;
+		}
+		return undefined;
+	});
+
+	const result = { text, model };
+	callbacks.onComplete?.(result);
+	return result;
+}
+
 async function callGemini(input: WorkspacePrompt): Promise<ProviderResponse> {
 	const baseUrl = requireValue(getString('gemini.baseUrl', 'https://generativelanguage.googleapis.com/v1beta'), 'openmlAssistant.gemini.baseUrl');
 	const apiKey = requireValue(await getProviderSecret('gemini'), 'Gemini API key');
 	const model = requireValue(getString('gemini.model'), 'openmlAssistant.gemini.model');
-	const json = await postJson(`${baseUrl.replace(/\/$/, '')}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+	const parts = [
+		{ text: createUserPrompt(input) },
+		...(input.attachments ?? [])
+			.filter(attachment => attachment.kind === 'image' || attachment.kind === 'pdf')
+			.map(attachment => ({
+				inline_data: {
+					mime_type: attachment.mimeType,
+					data: attachment.base64Data ?? ''
+				}
+			}))
+	];
+	const json = await postJson(`${baseUrl.replace(/\/$/, '')}/models/${encodeURIComponent(model)}:generateContent`, {
 		systemInstruction: { parts: [{ text: input.systemPrompt }] },
-		contents: [{ role: 'user', parts: [{ text: createUserPrompt(input) }] }],
+		contents: [{ role: 'user', parts }],
 		generationConfig: { temperature: 0.2, maxOutputTokens: getNumber('gemini.maxOutputTokens', DEFAULT_GEMINI_MAX_OUTPUT_TOKENS) }
 	}, {
-		headers: { 'Content-Type': 'application/json' }
+		headers: {
+			'Content-Type': 'application/json',
+			'x-goog-api-key': apiKey
+		}
 	});
 
 	const text = json?.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? '').join('\n').trim();
@@ -630,124 +852,152 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 		...input,
 		extraContext: await buildDeepContext(input.prompt, input.activeFileName, input.selectedText)
 	};
+	assertProviderSupportsAttachments(provider, enrichedInput);
 
-	switch (provider) {
-		case 'ollama': {
-			const baseUrl = requireValue(getString('ollama.baseUrl', 'http://127.0.0.1:11434'), 'openmlAssistant.ollama.baseUrl');
-			const model = requireValue(getString('ollama.model', 'llama3.2'), 'openmlAssistant.ollama.model');
-			const response = await postStream(`${baseUrl.replace(/\/$/, '')}/api/chat`, {
-				model,
-				stream: true,
-				messages: [
-					{ role: 'system', content: enrichedInput.systemPrompt },
-					{ role: 'user', content: createUserPrompt(enrichedInput) }
-				],
-				options: {
-					temperature: 0.2,
-					num_predict: getNumber('ollama.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
-				}
-			});
-			const text = await readNdjsonStream(response, json => {
-				const delta = json?.message?.content;
-				if (typeof delta === 'string' && delta) {
-					callbacks.onDelta(delta);
-					return delta;
-				}
-				return undefined;
-			});
-			const result = { text, model };
-			callbacks.onComplete?.(result);
-			return result;
-		}
-		case 'lmstudio': {
-			const baseUrl = requireValue(getString('lmStudio.baseUrl', 'http://127.0.0.1:1234/v1'), 'openmlAssistant.lmStudio.baseUrl');
-			const model = requireValue(getString('lmStudio.model', 'local-model'), 'openmlAssistant.lmStudio.model');
-			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, undefined, undefined, {
-				temperature: 0.2,
-				maxTokens: getNumber('lmStudio.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
-			});
-		}
-		case 'openai': {
-			const baseUrl = requireValue(getString('openai.baseUrl', 'https://api.openai.com/v1'), 'openmlAssistant.openai.baseUrl');
-			const apiKey = requireValue(await getProviderSecret('openai'), 'OpenAI API key');
-			const model = normalizeOpenAIModel(requireValue(getString('openai.model'), 'openmlAssistant.openai.model'));
-			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey, undefined, {
-				maxTokens: getNumber('openai.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
-			});
-		}
-		case 'gemini': {
-			const result = await callGemini(enrichedInput);
-			callbacks.onDelta(result.text);
-			callbacks.onComplete?.(result);
-			return result;
-		}
-		case 'anthropic': {
-			const baseUrl = requireValue(getString('anthropic.baseUrl', 'https://api.anthropic.com/v1'), 'openmlAssistant.anthropic.baseUrl');
-			const apiKey = requireValue(await getProviderSecret('anthropic'), 'Anthropic API key');
-			const model = requireValue(getString('anthropic.model'), 'openmlAssistant.anthropic.model');
-			const url = buildAnthropicMessagesUrl(baseUrl);
-			const headers = {
-				'Content-Type': 'application/json',
-				'x-api-key': apiKey,
-				'anthropic-version': '2023-06-01'
-			};
-			const body = {
-				model,
-				max_tokens: getNumber('anthropic.maxOutputTokens', DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS),
-				stream: true,
-				system: enrichedInput.systemPrompt,
-				messages: [{ role: 'user', content: [{ type: 'text', text: createUserPrompt(enrichedInput) }] }]
-			};
-			const response = await postStream(url, body, { headers });
-			let text = await readSseStream(response, json => {
-				if (json?.type === 'error') {
-					throw new Error(json?.error?.message ?? 'Anthropic streaming request failed.');
-				}
-				const delta = json?.type === 'content_block_delta' && json?.delta?.type === 'text_delta'
-					? json?.delta?.text
-					: undefined;
-				if (typeof delta === 'string' && delta) {
-					callbacks.onDelta(delta);
-					return delta;
-				}
-				return undefined;
-			});
-			if (!text.trim()) {
-				const fallback = await postJson(url, {
-					...body,
-					stream: false
-				}, { headers });
-				text = extractAnthropicText(fallback);
-				if (!text) {
-					throw new Error('Anthropic response did not include visible text content.');
-				}
-				callbacks.onDelta(text);
+	try {
+		switch (provider) {
+			case 'ollama': {
+				const baseUrl = requireValue(getString('ollama.baseUrl', 'http://127.0.0.1:11434'), 'openmlAssistant.ollama.baseUrl');
+				const model = requireValue(getString('ollama.model', 'llama3.2'), 'openmlAssistant.ollama.model');
+				const response = await postStream(`${baseUrl.replace(/\/$/, '')}/api/chat`, {
+					model,
+					stream: true,
+					messages: [
+						{ role: 'system', content: enrichedInput.systemPrompt },
+						{ role: 'user', content: createUserPrompt(enrichedInput) }
+					],
+					options: {
+						temperature: 0.2,
+						num_predict: getNumber('ollama.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+					}
+				});
+				const text = await readNdjsonStream(response, json => {
+					const delta = json?.message?.content;
+					if (typeof delta === 'string' && delta) {
+						callbacks.onDelta(delta);
+						return delta;
+					}
+					return undefined;
+				});
+				const result = { text, model };
+				callbacks.onComplete?.(result);
+				return result;
 			}
-			const result = { text, model };
-			callbacks.onComplete?.(result);
-			return result;
+			case 'lmstudio': {
+				const baseUrl = requireValue(getString('lmStudio.baseUrl', 'http://127.0.0.1:1234/v1'), 'openmlAssistant.lmStudio.baseUrl');
+				const model = requireValue(getString('lmStudio.model', 'local-model'), 'openmlAssistant.lmStudio.model');
+				return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, undefined, undefined, {
+					temperature: 0.2,
+					maxTokens: getNumber('lmStudio.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+				});
+			}
+			case 'openai': {
+				const model = normalizeOpenAIModel(requireValue(getString('openai.model'), 'openmlAssistant.openai.model'));
+				const hasBinaryAttachments = (enrichedInput.attachments ?? []).length > 0;
+				if (hasBinaryAttachments || usesOpenAIResponsesApi(model)) {
+					const result = await callOpenAIResponses(enrichedInput);
+					callbacks.onDelta(result.text);
+					callbacks.onComplete?.(result);
+					return result;
+				}
+
+				const baseUrl = requireValue(getString('openai.baseUrl', 'https://api.openai.com/v1'), 'openmlAssistant.openai.baseUrl');
+				const apiKey = requireValue(await getProviderSecret('openai'), 'OpenAI API key');
+				return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey, undefined, {
+					maxTokens: getNumber('openai.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
+				});
+			}
+			case 'gemini': {
+				const result = await callGemini(enrichedInput);
+				callbacks.onDelta(result.text);
+				callbacks.onComplete?.(result);
+				return result;
+			}
+			case 'anthropic': {
+				const baseUrl = requireValue(getString('anthropic.baseUrl', 'https://api.anthropic.com/v1'), 'openmlAssistant.anthropic.baseUrl');
+				const apiKey = requireValue(await getProviderSecret('anthropic'), 'Anthropic API key');
+				const model = requireValue(getString('anthropic.model'), 'openmlAssistant.anthropic.model');
+				const url = buildAnthropicMessagesUrl(baseUrl);
+				const headers = {
+					'Content-Type': 'application/json',
+					'x-api-key': apiKey,
+					'anthropic-version': '2023-06-01'
+				};
+				const body = {
+					model,
+					max_tokens: getNumber('anthropic.maxOutputTokens', DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS),
+					stream: true,
+					system: enrichedInput.systemPrompt,
+					messages: [{
+						role: 'user',
+						content: [
+							{ type: 'text', text: createUserPrompt(enrichedInput) },
+							...(enrichedInput.attachments ?? [])
+								.filter(attachment => attachment.kind === 'image')
+								.map(attachment => ({
+									type: 'image',
+									source: {
+										type: 'base64',
+										media_type: attachment.mimeType,
+										data: attachment.base64Data ?? ''
+									}
+								})),
+							...(enrichedInput.attachments ?? [])
+								.filter(attachment => attachment.kind === 'pdf')
+								.map(attachment => ({
+									type: 'document',
+									source: {
+										type: 'base64',
+										media_type: attachment.mimeType,
+										data: attachment.base64Data ?? ''
+									}
+								}))
+						]
+					}]
+				};
+				const response = await postStream(url, body, { headers });
+				let text = await readSseStream(response, json => {
+					if (json?.type === 'error') {
+						throw new Error(json?.error?.message ?? 'Anthropic streaming request failed.');
+					}
+					const delta = json?.type === 'content_block_delta' && json?.delta?.type === 'text_delta'
+						? json?.delta?.text
+						: undefined;
+					if (typeof delta === 'string' && delta) {
+						callbacks.onDelta(delta);
+						return delta;
+					}
+					return undefined;
+				});
+				if (!text.trim()) {
+					const fallback = await postJson(url, {
+						...body,
+						stream: false
+					}, { headers });
+					text = extractAnthropicText(fallback);
+					if (!text) {
+						throw new Error('Anthropic response did not include visible text content.');
+					}
+					callbacks.onDelta(text);
+				}
+				const result = { text, model };
+				callbacks.onComplete?.(result);
+				return result;
+			}
+			case 'openrouter': {
+				return streamOpenRouter(enrichedInput, callbacks);
+			}
+			case 'azurefoundry': {
+				const result = await callAzureFoundry(enrichedInput);
+				callbacks.onDelta(result.text);
+				callbacks.onComplete?.(result);
+				return result;
+			}
+			default:
+				throw new Error(`Unsupported provider: ${provider satisfies never}`);
 		}
-		case 'openrouter': {
-			const baseUrl = requireValue(getString('openRouter.baseUrl', 'https://openrouter.ai/api/v1'), 'openmlAssistant.openRouter.baseUrl');
-			const apiKey = requireValue(await getProviderSecret('openrouter'), 'OpenRouter API key');
-			const model = requireValue(getString('openRouter.model'), 'openmlAssistant.openRouter.model');
-			const extraHeaders = {
-				'HTTP-Referer': getString('openRouter.siteUrl', 'https://openml-code.local'),
-				'X-Title': getString('openRouter.appName', 'OpenML Code')
-			};
-			return streamOpenAICompatible(baseUrl, model, enrichedInput, callbacks, apiKey, extraHeaders, {
-				temperature: 0.2,
-				maxTokens: getNumber('openRouter.maxOutputTokens', DEFAULT_COMPATIBLE_MAX_OUTPUT_TOKENS)
-			});
-		}
-		case 'azurefoundry': {
-			const result = await callAzureFoundry(enrichedInput);
-			callbacks.onDelta(result.text);
-			callbacks.onComplete?.(result);
-			return result;
-		}
-		default:
-			throw new Error(`Unsupported provider: ${provider satisfies never}`);
+	} catch (error) {
+		normalizeAttachmentError(enrichedInput, error);
 	}
 }
 
