@@ -143,6 +143,7 @@ export interface NativeParsedArgs {
 	'enable-coi'?: boolean;
 	'unresponsive-sample-interval'?: string;
 	'unresponsive-sample-period'?: string;
+	'unresponsive-dialog-delay'?: string;
 	'enable-rdp-display-tracking'?: boolean;
 	'disable-layout-restore'?: boolean;
 	'disable-experiments'?: boolean;

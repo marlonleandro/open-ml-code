@@ -555,7 +555,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			let truncatedProposal = !editProposal && requestMode === 'edit' && looksLikePartialEditProposal(rawResponse);
 
 			if (!editProposal && truncatedProposal) {
-				assistantMessage.content = 'La respuesta del modelo llego truncada. Reintentando automaticamente con un lote mas pequeno...';
+				assistantMessage.content = 'The model response was truncated. Retrying automatically with a smaller batch...';
 				this.lastAssistantResponse = assistantMessage.content;
 				await this.syncState();
 				rawResponse = await runAssistantRequest(this.buildChunkedRetryPrompt(trimmedPrompt), 'edit');
@@ -566,7 +566,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			if (!editProposal && requestMode === 'edit' && currentAttachments.length && !truncatedProposal) {
 				const visibleResponse = stripEditProposalBlock(rawResponse).trim();
 				if (visibleResponse) {
-					assistantMessage.content = 'El modelo analizo los archivos adjuntos, pero no devolvio una propuesta editable. Reintentando automaticamente con instrucciones mas estrictas...';
+					assistantMessage.content = 'The model analyzed the attached files but did not return an editable proposal. Retrying automatically with stricter instructions...';
 					this.lastAssistantResponse = assistantMessage.content;
 					await this.syncState();
 					rawResponse = await runAssistantRequest(this.buildAttachmentEditRetryPrompt(trimmedPrompt), 'edit');
@@ -584,7 +584,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 					assistantMessage.content = visibleResponse;
 				} else {
 					assistantMessage.content = truncatedProposal
-						? 'No se pudo completar el trabajo porque no se recibio la respuesta completa del proveedor del modelo. La propuesta editable llego truncada antes de terminar el JSON, incluso despues de reintentar con un lote mas pequeno. Aumenta el limite de salida del proveedor o divide la solicitud en pasos mas pequenos.'
+						? 'The work could not be completed because the full response was not received from the model provider. The editable proposal was truncated before the JSON finished, even after retrying with a smaller batch. Increase the provider output limit or split the request into smaller steps.'
 						: (visibleResponse + '\n\n> OpenML Assistant could not extract an editable proposal from this response. Ask the model to return the result as an `openml-edit` proposal with full file contents.').trim();
 				}
 			} else {
@@ -603,13 +603,13 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		} catch (error) {
 			const text = error instanceof Error ? error.message : String(error);
 			if (isTimeoutError(error)) {
-				assistantMessage.content = 'La solicitud al proveedor excedio el tiempo de espera configurado. Aumenta el timeout o usa un modelo mas rapido para esta tarea.';
+				assistantMessage.content = 'The request exceeded the configured timeout. Increase the timeout or use a faster model for this task.';
 				this.lastEditProposal = undefined;
 				this.lastAssistantResponse = assistantMessage.content;
 				await this.persistProjectHistory();
 				this.postMessage({ type: 'error', message: text });
 			} else if (isAbortError(error)) {
-				assistantMessage.content = 'La ejecucion fue cancelada por el usuario.';
+				assistantMessage.content = 'Execution was cancelled by the user.';
 				this.lastEditProposal = undefined;
 				this.lastAssistantResponse = assistantMessage.content;
 				await this.persistProjectHistory();
@@ -1233,9 +1233,9 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			<div id="hintText" class="hint">Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]</div>
 			<div id="attachments" class="attachments"></div>
 			<div id="applyConfirm" class="apply-confirm">
-				<div class="apply-confirm-text">Desea aplicar los cambios en el proyecto actual?</div>
+				<div class="apply-confirm-text">Do you want to apply these changes to the current project?</div>
 				<div class="apply-confirm-actions">
-					<button id="confirmApplyYesButton" class="confirm-button primary" type="button">Si</button>
+					<button id="confirmApplyYesButton" class="confirm-button primary" type="button">Yes</button>
 					<button id="confirmApplyNoButton" class="confirm-button" type="button">No</button>
 				</div>
 			</div>
@@ -1634,18 +1634,62 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			return renderFallbackMarkdown(value || '');
 		}
 
+		let lastRenderedRoles = [];
+		let lastRenderedContents = [];
+
+		function createMessageMarkup(message) {
+			const title = message.role === 'user' ? 'You' : 'Assistant';
+			const body = message.role === 'user'
+				? '<div>' + escapeHtml(message.content) + '</div>'
+				: '<div class="rendered">' + renderMarkdown(message.content) + '</div>';
+			return '<article class="message ' + message.role + '">' +
+				'<div class="meta">' + title + '</div>' +
+				body +
+				'</article>';
+		}
+
 		function renderMessages(items) {
 			const visibleMessages = items.filter(message => message.role !== 'status');
-			messages.innerHTML = visibleMessages.map(message => {
-				const title = message.role === 'user' ? 'You' : 'Assistant';
-				const body = message.role === 'user'
-					? '<div>' + escapeHtml(message.content) + '</div>'
-					: '<div class="rendered">' + renderMarkdown(message.content) + '</div>';
-				return '<article class="message ' + message.role + '">' +
-					'<div class="meta">' + title + '</div>' +
-					body +
-					'</article>';
-			}).join('');
+
+			const roles = visibleMessages.map(message => message.role);
+			const contents = visibleMessages.map(message => message.content);
+			const sameShape =
+				roles.length === lastRenderedRoles.length &&
+				roles.every((role, index) => role === lastRenderedRoles[index]);
+
+			if (
+				sameShape &&
+				visibleMessages.length > 0 &&
+				roles[roles.length - 1] === 'assistant'
+			) {
+				let changedIndex = -1;
+				for (let index = 0; index < contents.length; index += 1) {
+					if (contents[index] !== lastRenderedContents[index]) {
+						if (changedIndex !== -1) {
+							changedIndex = -2;
+							break;
+						}
+						changedIndex = index;
+					}
+				}
+
+				if (changedIndex === contents.length - 1) {
+					const lastNode = messages.lastElementChild;
+					if (lastNode instanceof HTMLElement) {
+						const rendered = lastNode.querySelector('.rendered');
+						if (rendered instanceof HTMLElement) {
+							rendered.innerHTML = renderMarkdown(visibleMessages[changedIndex].content);
+							lastRenderedContents = contents;
+							messages.scrollTop = messages.scrollHeight;
+							return;
+						}
+					}
+				}
+			}
+
+			messages.innerHTML = visibleMessages.map(createMessageMarkup).join('');
+			lastRenderedRoles = roles;
+			lastRenderedContents = contents;
 			messages.scrollTop = messages.scrollHeight;
 		}
 
@@ -1666,7 +1710,41 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		}
 
 		let currentBusy = false;
+		let pendingState = null;
+		let scheduledStateRender = 0;
 		setMode('agent');
+
+		function flushStateRender() {
+			scheduledStateRender = 0;
+			const state = pendingState;
+			pendingState = null;
+			if (!state) {
+				return;
+			}
+
+			providerSelect.value = state.provider;
+			renderModels(state.models, state.modelLabel);
+			statusText.textContent = state.providerLabel + ' | ' + state.modelLabel + (state.localFirst ? ' | local' : ' | remote');
+			hintText.textContent = state.hasEditProposal
+				? (state.showAgentApplyPrompt
+					? 'Changes are ready. Confirm with Yes / No or use Preview Edits to review before applying.'
+					: 'Edit proposal ready. Use Preview Edits, Apply Edits, or Suggested Tests from the menu.')
+				: 'Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]';
+			setApplyPromptVisible(state.showAgentApplyPrompt);
+			setMode(state.mode);
+			renderAttachments(state.attachments || []);
+			renderMessages(state.messages);
+		}
+
+		function scheduleStateRender(state) {
+			pendingState = state;
+			if (scheduledStateRender) {
+				return;
+			}
+
+			const delay = currentBusy ? 80 : 0;
+			scheduledStateRender = window.setTimeout(flushStateRender, delay);
+		}
 
 		function setBusy(isBusy) {
 			currentBusy = isBusy;
@@ -1833,18 +1911,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			const message = event.data;
 			switch (message.type) {
 				case 'state':
-					providerSelect.value = message.state.provider;
-					renderModels(message.state.models, message.state.modelLabel);
-					statusText.textContent = message.state.providerLabel + ' | ' + message.state.modelLabel + (message.state.localFirst ? ' | local' : ' | remote');
-					hintText.textContent = message.state.hasEditProposal
-						? (message.state.showAgentApplyPrompt
-							? 'Hay cambios listos. Confirma con Si / No o usa Preview Edits para revisar antes de aplicar.'
-							: 'Edit proposal ready. Use Preview Edits, Apply Edits, or Suggested Tests from the menu.')
-						: 'Tools: /context query, /symbols query, /memory, /remember note, /rules, /set-rule rule, /read path, /search pattern, /test [command], /fix [test command]';
-					setApplyPromptVisible(message.state.showAgentApplyPrompt);
-					setMode(message.state.mode);
-					renderAttachments(message.state.attachments || []);
-					renderMessages(message.state.messages);
+					scheduleStateRender(message.state);
 					return;
 				case 'busy':
 					setBusy(message.busy);

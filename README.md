@@ -1,51 +1,51 @@
 # OpenML Code
 
-`OpenML Code` es un IDE basado en `Code - OSS`, enfocado en desarrollo asistido por IA, con enfoque `local-first` y soporte para `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter` y `Azure Foundry`.
+`OpenML Code` is an IDE built on top of `Code - OSS`, focused on AI-assisted development with a `local-first` approach and support for `Ollama`, `LM Studio`, `OpenAI`, `Gemini`, `Anthropic`, `OpenRouter`, and `Azure Foundry`.
 
-## Cierre de la primera etapa
+## End Of The First Stage
 
-La primera etapa del proyecto ya queda cerrada con una base operativa real del producto:
+The first stage of the project is now complete with a real, operational product baseline:
 
-- IDE funcional con branding propio `OpenML Code`
-- `OpenML Assistant` builtin integrado y usable dentro del editor
-- soporte multimodal para imagen y PDF en proveedores compatibles
-- instalador Windows `OpenMLCodeSetup.exe`
-- version portable Windows lista para compartir con la comunidad
-- extension `.vsix` lista para publicacion en `Open VSX`
-- tema por defecto `OpenML Prussian Blue`
-- welcome experience inicial personalizada para `OpenML Code`
+- functional IDE with its own `OpenML Code` branding
+- built-in `OpenML Assistant` integrated and usable inside the editor
+- multimodal support for images and PDFs on compatible providers
+- Windows installer `OpenMLCodeSetup.exe`
+- Windows portable build ready to share with the community
+- `.vsix` extension package ready for publication on `Open VSX`
+- default theme `OpenML Prussian Blue`
+- customized initial welcome experience for `OpenML Code`
 
-Con esto, `OpenML Code` entra en una fase de distribucion temprana y validacion con usuarios.
+With this, `OpenML Code` moves into an early distribution and user validation phase.
 
-## Que es hoy
+## What It Includes Today
 
-`OpenML Code` ya incluye:
+`OpenML Code` already includes:
 
-- editor funcional construido sobre `Code - OSS`
-- tema por defecto `OpenML Prussian Blue`
-- splash y welcome page con branding de `OpenML Code`
-- ejecutable Windows `OMLCode.exe`
-- instalador Windows `OpenMLCodeSetup.exe`
-- version portable Windows `OpenMLCode-win32-x64-portable.zip`
-- chat propio `OpenML Assistant` en la barra lateral derecha
-- modos `agent`, `ask`, `edit`, `plan`
-- `streaming` de respuestas
-- resaltado de sintaxis en snippets del chat con accion `Copy`
-- `SecretStorage` para API keys remotas
-- autodeteccion de modelos locales en `Ollama` y `LM Studio`
-- herramientas de lectura, busqueda, ejecucion y fix loop
-- edicion asistida con preview, apply y tests sugeridos
-- contexto profundo con indexado ligero, simbolos, memoria y reglas persistentes
-- base de distribucion con Open VSX, scripts de empaquetado y runbook de release
+- functional editor built on top of `Code - OSS`
+- default theme `OpenML Prussian Blue`
+- splash and welcome page with `OpenML Code` branding
+- Windows executable `OMLCode.exe`
+- Windows installer `OpenMLCodeSetup.exe`
+- Windows portable build `OpenMLCode-win32-x64-portable.zip`
+- built-in `OpenML Assistant` chat in the right sidebar
+- `agent`, `ask`, `edit`, and `plan` modes
+- response `streaming`
+- syntax-highlighted chat snippets with `Copy` action
+- `SecretStorage` for remote API keys
+- automatic local model discovery in `Ollama` and `LM Studio`
+- read, search, execution, and fix-loop tools
+- assisted editing with preview, apply, and suggested tests
+- deep context with lightweight indexing, symbols, memory, and persistent rules
+- distribution baseline with Open VSX, packaging scripts, and release runbook
 
-## Proveedores soportados
+## Supported Providers
 
-### Locales
+### Local
 
 - `Ollama`
 - `LM Studio`
 
-### Remotos
+### Remote
 
 - `OpenAI`
 - `Gemini`
@@ -53,186 +53,186 @@ Con esto, `OpenML Code` entra en una fase de distribucion temprana y validacion 
 - `OpenRouter`
 - `Azure Foundry`
 
-Todos los proveedores remotos compatibles con multimodal ya pueden procesar imagenes y/o PDF segun sus capacidades.
+All remote providers with multimodal support can now process images and/or PDFs according to their capabilities.
 
-## Instalacion y arranque para usuario final
+## Install And Run For End Users
 
-### 1. Abrir el IDE
+### 1. Open The IDE
 
-Desde la raiz del proyecto:
+From the project root:
 
 ```powershell
 cd apps/code-oss
 .\scripts\code.bat
 ```
 
-Validacion rapida:
+Quick validation:
 
 ```powershell
 .\scripts\code.bat --version
 ```
 
-### 2. Abrir el asistente
+### 2. Open The Assistant
 
-Dentro del IDE:
+Inside the IDE:
 
-- abre la paleta de comandos
-- ejecuta `OpenML Assistant: Open Chat`
+- open the Command Palette
+- run `OpenML Assistant: Open Chat`
 
-El asistente aparece en la barra lateral derecha.
+The assistant appears in the right sidebar.
 
-### 3. Elegir proveedor y modelo
+### 3. Choose Provider And Model
 
-En la parte superior del panel del asistente:
+At the top of the assistant panel:
 
-- elige proveedor
-- elige modelo
+- choose a provider
+- choose a model
 
-Si usas `Ollama` o `LM Studio`, el selector de modelos se alimenta desde la deteccion automatica. `Anthropic` y `OpenAI` tambien pueden poblar su selector al usar `Refresh Models` con la API key guardada.
+If you use `Ollama` or `LM Studio`, the model selector is fed by automatic discovery. `Anthropic` and `OpenAI` can also populate their selector through `Refresh Models` once an API key has been stored.
 
-### 4. Guardar API keys remotas
+### 4. Save Remote API Keys
 
-Si usas un proveedor remoto:
+If you use a remote provider:
 
-- abre el menu de tres puntos del asistente
-- elige `Manage API Keys`
-- selecciona el proveedor
-- pega la API key
+- open the assistant three-dot menu
+- choose `Manage API Keys`
+- select the provider
+- paste the API key
 
-Las claves se guardan en `SecretStorage`.
+Keys are stored in `SecretStorage`.
 
-### 5. Configurar base URLs si hace falta
+### 5. Configure Base URLs If Needed
 
-En `Settings`, busca `OpenML Assistant`.
+In `Settings`, search for `OpenML Assistant`.
 
-Configuraciones tipicas:
+Typical configuration values:
 
 - `Ollama baseUrl`: `http://127.0.0.1:11434`
 - `LM Studio baseUrl`: `http://127.0.0.1:1234/v1`
 - `OpenAI baseUrl`: `https://api.openai.com/v1`
 - `Anthropic baseUrl`: `https://api.anthropic.com/v1`
-- `Azure Foundry host`: `https://tu-recurso.cognitiveservices.azure.com`
+- `Azure Foundry host`: `https://your-resource.cognitiveservices.azure.com`
 - `Azure Foundry apiVersion`: `2025-04-01-preview`
-- `Azure Foundry deployment`: nombre del deployment/modelo configurado en tu recurso
+- `Azure Foundry deployment`: deployment/model name configured in your resource
 
-## Como usar OpenML Assistant
+## How To Use OpenML Assistant
 
-### Modo `ask`
+### `ask` Mode
 
-Para preguntas, explicaciones y ayuda puntual.
+For questions, explanations, and focused help.
 
-Ejemplo:
-
-```text
-Explicame este archivo y dime que riesgos ves.
-```
-
-### Modo `plan`
-
-Para planes de implementacion antes de tocar codigo.
-
-Ejemplo:
+Example:
 
 ```text
-Disena un plan para agregar autenticacion JWT a este proyecto.
+Explain this file and tell me what risks you see.
 ```
 
-### Modo `edit`
+### `plan` Mode
 
-Para pedir cambios reales sobre archivos.
+For implementation planning before touching code.
 
-Ejemplos:
+Example:
 
 ```text
-Crea un archivo src/utils/fileReader.ts con una funcion async readTextFile(path: string): Promise<string>. Usa fs/promises, maneja errores y sugiere tests.
+Design a plan to add JWT authentication to this project.
+```
+
+### `edit` Mode
+
+For requesting real file changes.
+
+Examples:
+
+```text
+Create a file src/utils/fileReader.ts with an async function readTextFile(path: string): Promise<string>. Use fs/promises, handle errors, and suggest tests.
 ```
 
 ```text
-Lee el archivo activo y optimizalo sin cambiar su comportamiento. Mejora legibilidad, estructura y manejo de errores. Devuelve una propuesta editable.
+Read the active file and optimize it without changing behavior. Improve readability, structure, and error handling. Return an editable proposal.
 ```
 
-### Modo `agent`
+### `agent` Mode
 
-Para una ayuda mas amplia y conversacional dentro del proyecto.
+For broader, more conversational project help.
 
-Ejemplo:
+Example:
 
 ```text
-Crear una aplicación web en React para recepción de facturas. Genera una arquitectura limpia utilizando las mejores prácticas de desarrollo web. La aplicación debe mostrar la lista de facturas creadas permitiendo ver el detalle y editar los datos. Además, se debe permitir crear una nueva factura. Utiliza un estilo modelo enfocado a una mejor experiencia de usuario tanto en desktop como mobile.
+Create a React web application for invoice intake. Generate a clean architecture using web development best practices. The application must show a list of created invoices, allow viewing the details and editing the data, and support creating a new invoice. Use a style focused on excellent user experience for both desktop and mobile.
 ```
 
-## Flujo de edicion asistida
+## Assisted Editing Flow
 
-Cuando el modelo devuelve una propuesta estructurada:
+When the model returns a structured proposal:
 
-1. revisa la respuesta del asistente
-2. abre el menu de tres puntos
-3. usa `Preview Edits`
-4. revisa el diff y el resumen
-5. usa `Apply Edits` si estas conforme
-6. usa `Suggested Tests` para ver pruebas sugeridas
+1. review the assistant response
+2. open the three-dot menu
+3. use `Preview Edits`
+4. review the diff and summary
+5. use `Apply Edits` if you agree
+6. use `Suggested Tests` to review proposed tests
 
-Si una respuesta larga se corta o quieres repetir una consulta, usa `Run Again` desde el menu. Tambien puedes cambiar primero el modelo y luego volver a ejecutar el mismo prompt.
+If a long response gets cut off or you want to repeat a request, use `Run Again` from the menu. You can also switch models first and then rerun the same prompt.
 
-## Herramientas del asistente
+## Assistant Tools
 
-Puedes escribir comandos directos en el chat:
+You can write direct commands in the chat:
 
-- `/read <path>`: lee un archivo
-- `/search <pattern>`: busca texto en el workspace
-- `/diff [path]`: muestra diff del workspace o de un archivo
-- `/errors`: muestra diagnosticos del editor
-- `/test [command]`: ejecuta tests
-- `/run <command>`: ejecuta un comando con aprobacion
-- `/fix [test command]`: corre tests, lee errores e inicia un loop de correccion
-- `/memory`: muestra memoria y reglas persistentes del workspace
-- `/remember <note>`: guarda una nota persistente del proyecto
-- `/clear-memory`: limpia la memoria del proyecto en ese workspace
-- `/rules`: muestra reglas persistentes del workspace
-- `/set-rule <rule>`: agrega una regla persistente
-- `/clear-rules`: limpia las reglas persistentes
-- `/symbols <query>`: busca simbolos del workspace via LSP
-- `/context <query>`: construye contexto profundo relevante para una consulta
-- `/reindex`: reconstruye el indice semantico ligero
+- `/read <path>`: reads a file
+- `/search <pattern>`: searches text in the workspace
+- `/diff [path]`: shows the workspace diff or the diff for one file
+- `/errors`: shows editor diagnostics
+- `/test [command]`: runs tests
+- `/run <command>`: runs a command with approval
+- `/fix [test command]`: runs tests, reads errors, and starts a fix loop
+- `/memory`: shows workspace memory and persistent rules
+- `/remember <note>`: stores a persistent project note
+- `/clear-memory`: clears workspace memory
+- `/rules`: shows persistent workspace rules
+- `/set-rule <rule>`: adds a persistent rule
+- `/clear-rules`: clears persistent rules
+- `/symbols <query>`: searches workspace symbols via LSP
+- `/context <query>`: builds deep context relevant to a query
+- `/reindex`: rebuilds the lightweight semantic index
 
-## Modelos Sugeridos
+## Suggested Models
 
 - Local (LM Studio / Ollama): `Qwen3-Coder`, `GML-4.6`, `gpt-oss-20b`
 - OpenAI: `gpt-5.4`, `gpt-5.3-codex`
-- Gemini:  `gemini-2.5-pro`, `gemini-3-flash-preview`
+- Gemini: `gemini-2.5-pro`, `gemini-3-flash-preview`
 - Anthropic: `claude-sonet-4-5-20250929`, `claude-opus-4-6`
 - OpenRouter: `minimax/minimax-m2.7`, `z-ai/glm-5-turbo`, `qwen/qwen3.5-397b-a17b`
 - Azure Foundry: `gpt-5.3-codex`, `gpt-5.4`, `gpt-5.4-mini`
 
-## Distribucion
+## Distribution
 
-### Generar el instalador de Windows
+### Generate The Windows Installer
 
-Desde la raiz del proyecto:
+From the repository root:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\release\package-win32.ps1 -Arch x64 -Target user
 ```
 
-Salida esperada:
+Expected output:
 
-- bundle Win32 en `apps/VSCode-win32-x64`
-- instalador en `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`
+- Win32 bundle in `apps/VSCode-win32-x64`
+- installer in `apps/code-oss/.build/win32-x64/user-setup/OpenMLCodeSetup.exe`
 
-### Generar la version portable de Windows
+### Generate The Windows Portable Build
 
-Desde la raiz del proyecto:
+From the repository root:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\release\package-win32-portable.ps1 -Arch x64
 ```
 
-Salida esperada:
+Expected output:
 
-- carpeta portable en `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable`
-- zip portable en `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable.zip`
+- portable folder in `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable`
+- portable zip in `apps/code-oss/.build/win32-x64/portable/OpenMLCode-win32-x64-portable.zip`
 
-Scripts utiles:
+Useful scripts:
 
 ```powershell
 pnpm run release:win32
@@ -244,67 +244,67 @@ pnpm run extension:package
 pnpm run extension:publish:openvsx
 ```
 
-## Requisitos para actualizar o compilar el proyecto
+## Requirements To Update Or Build The Project
 
-Para modificar, compilar, depurar o publicar `OpenML Code` en Windows conviene tener este entorno listo:
+To modify, build, debug, or publish `OpenML Code` on Windows, this environment is recommended:
 
-- `Windows 10` o `Windows 11` de 64 bits
+- `Windows 10` or `Windows 11` 64-bit
 - `Node.js 22.22.x`
-- `npm` incluido con `Node.js 22.22.x`
-- `pnpm` disponible globalmente
+- `npm` included with `Node.js 22.22.x`
+- `pnpm` installed globally
 - `Git`
-- `PowerShell 5.1+` o `PowerShell 7+`
-- `Visual Studio 2022` o `Build Tools for Visual Studio 2022`
-- workload `Desktop development with C++`
+- `PowerShell 5.1+` or `PowerShell 7+`
+- `Visual Studio 2022` or `Build Tools for Visual Studio 2022`
+- `Desktop development with C++` workload
 - `MSVC v143`
-- `Windows SDK` reciente para Windows 10/11
-- `Python 3` en `PATH` para `node-gyp` y reconstruccion de modulos nativos
+- recent `Windows SDK` for Windows 10/11
+- `Python 3` available in `PATH` for `node-gyp` and native module rebuilds
 
-Notas practicas:
+Practical notes:
 
-- el proyecto usa modulos nativos como `node-pty`, `@vscode/spdlog`, `@vscode/sqlite3` y `@vscode/windows-mutex`
-- para desarrollo diario suele bastar con `npm.cmd install`, `npm.cmd run compile` y `.\scripts\code.bat` dentro de `apps/code-oss`
-- para publicar el instalador Win32 se usa `.\scripts\release\package-win32.ps1` desde la raiz del repo
-- si faltan binarios como `rg.exe`, `spdlog.node` o `vscode-sqlite3.node`, el IDE puede arrancar incompleto o fallar en runtime
+- the project uses native modules such as `node-pty`, `@vscode/spdlog`, `@vscode/sqlite3`, and `@vscode/windows-mutex`
+- for day-to-day development, `npm.cmd install`, `npm.cmd run compile`, and `.\scripts\code.bat` inside `apps/code-oss` are usually enough
+- to publish the Windows installer, use `.\scripts\release\package-win32.ps1` from the repository root
+- if binaries such as `rg.exe`, `spdlog.node`, or `vscode-sqlite3.node` are missing, the IDE may start in an incomplete state or fail at runtime
 
-## Estado actual del proyecto
+## Current Project Status
 
-- branding tecnico principal aplicado
-- splash y welcome page alineados con `OpenML Code`
-- `OpenML Assistant` builtin integrado
-- snippets del chat con resaltado de sintaxis y `Copy code`
-- edicion asistida funcional
-- herramientas profundas funcionales
-- fix loop automatico de primera iteracion
-- contexto profundo funcional de primera iteracion
-- proveedor `Anthropic` alineado con `Messages API`
-- proveedor `Azure Foundry` integrado con `Responses API`
-- listado remoto de modelos para `Anthropic` y `OpenAI`
-- distribucion Windows validada end-to-end
-- distribucion portable Windows validada end-to-end
-- menu `Help` ajustado para distribucion propia sin `Report Issue`
-- ejecutable Windows unificado como `OMLCode.exe`
-- instalador Windows unificado como `OpenMLCodeSetup.exe`
-- artefacto portable Windows generado como `OpenMLCode-win32-x64-portable.zip`
-- welcome page inicial personalizada para `OpenML Code`
-- correccion aplicada para evitar un secreto real en tests del repo
+- core technical branding applied
+- splash and welcome page aligned with `OpenML Code`
+- built-in `OpenML Assistant` integrated
+- chat snippets with syntax highlighting and `Copy code`
+- assisted editing working
+- deep tools working
+- first-iteration automatic fix loop working
+- first-iteration deep context working
+- `Anthropic` provider aligned with the `Messages API`
+- `Azure Foundry` provider integrated with the `Responses API`
+- remote model listing for `Anthropic` and `OpenAI`
+- Windows distribution validated end to end
+- Windows portable distribution validated end to end
+- `Help` menu adjusted for a self-distributed product without `Report Issue`
+- unified Windows executable as `OMLCode.exe`
+- unified Windows installer as `OpenMLCodeSetup.exe`
+- Windows portable artifact generated as `OpenMLCode-win32-x64-portable.zip`
+- customized initial welcome page for `OpenML Code`
+- fix applied to avoid a real secret in repository tests
 
-## Documentacion adicional
+## Additional Documentation
 
 - [Planning](./PLANNING.md)
-- [Arquitectura](./docs/architecture.md)
+- [Architecture](./docs/architecture.md)
 - [Roadmap](./docs/roadmap.md)
-- [Distribucion](./docs/distribution.md)
+- [Distribution](./docs/distribution.md)
 - [Branding](./docs/openml-code-branding.md)
+- [Test Prompts](./TEST_PROMPTS.md)
 
-## Creditos
+## Credits
 
-- Desarrollado por: **Marlon Leandro**
-- Sitio web: https://mycustomdevs.com/
-- Correo: marlonleandro@yahoo.com
+- Developed by: **Marlon Leandro**
+- Website: https://openmlcode.mycustomdevs.com/
+- Email: marlonleandro@yahoo.com
 
-## Donaciones
+## Donations
 
-- **PayPal** => Cuenta malulex@gmail.com
-- **Zinli** => Nro. de cuenta 4-013-88068677-16
-- **Yape** => Numero de telefono +51985689885
+- **PayPal** => Account: malulex@gmail.com
+- **Zinli** => Account number: 4-013-88068677-16

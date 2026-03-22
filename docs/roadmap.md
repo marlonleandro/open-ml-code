@@ -1,153 +1,153 @@
-# Roadmap por fases
+# Phase-Based Roadmap
 
-## Fase 0. Fundacion
+## Phase 0. Foundation
 
-- fork de `Code - OSS`
-- branding tecnico inicial
-- build local
-- extension host funcionando
-- base monorepo
+- `Code - OSS` fork
+- initial technical branding
+- local build
+- working extension host
+- monorepo baseline
 
-Entregable: editor renombrado compilando y arrancando localmente.
+Deliverable: renamed editor compiling and starting locally.
 
-Estado: completada
+Status: completed
 
-## Fase 1. Asistente usable dentro del IDE
+## Phase 1. Usable Assistant Inside The IDE
 
-- panel de asistente propio
-- contexto del archivo activo
-- soporte de proveedores locales y remotos
-- modos `agent`, `ask`, `edit` y `plan`
-- vista en la barra lateral derecha
-- UX minimalista inicial
+- custom assistant panel
+- active file context
+- support for local and remote providers
+- `agent`, `ask`, `edit`, and `plan` modes
+- right sidebar view
+- initial minimalist UX
 
-Entregable: el usuario conversa con un asistente integrado dentro del editor.
+Deliverable: the user can talk to an integrated assistant inside the editor.
 
-Estado: completada
+Status: completed
 
-## Fase 2. Pulido de producto AI
+## Phase 2. AI Product Polish
 
-- `streaming` de respuestas
-- `SecretStorage` para API keys
-- autodeteccion de modelos de `Ollama` y `LM Studio`
-- listado remoto de modelos para `Anthropic` y `OpenAI`
-- herramientas iniciales del workspace
-- renderizado Markdown real para respuestas
-- envio por `Enter` y UX mas cercana a otros IDEs
+- response `streaming`
+- `SecretStorage` for API keys
+- automatic model discovery for `Ollama` and `LM Studio`
+- remote model listing for `Anthropic` and `OpenAI`
+- initial workspace tools
+- real Markdown response rendering
+- `Enter` to send and UX closer to other AI IDEs
 
-Entregable: chat AI util para trabajo real dentro del IDE.
+Deliverable: an AI chat useful for real work inside the IDE.
 
-Estado: completada
+Status: completed
 
-## Fase 3. Edicion asistida
+## Phase 3. Assisted Editing
 
-- generar propuestas `openml-edit`
-- preview de cambios con diff
-- aplicar cambios con aprobacion
-- edicion multiarchivo
-- tests sugeridos
-- comando `Edit With Preview`
+- generate `openml-edit` proposals
+- change preview with diff
+- apply changes with approval
+- multi-file editing
+- suggested tests
+- `Edit With Preview` command
 
-Entregable: el agente propone cambios estructurados, el usuario los revisa y luego los aplica.
+Deliverable: the agent proposes structured changes, the user reviews them, and then applies them.
 
-Estado: completada en su primera version funcional
+Status: completed in its first functional version
 
-## Fase 4. Herramientas y ejecucion profunda
+## Phase 4. Tools And Deep Execution
 
-- terminal controlada mas rica
-- ejecucion de tests
-- lectura de errores y diagnosticos
-- loops de fix
-- re-check automatico tras aplicar cambios
-- reintentos controlados del loop de correccion
+- richer controlled terminal
+- test execution
+- error and diagnostics reading
+- fix loops
+- automatic re-check after applying changes
+- controlled retries in the correction loop
 
-Entregable: flujo `implementa -> prueba -> corrige -> revalida` dentro del IDE.
+Deliverable: an `implement -> test -> fix -> revalidate` flow inside the IDE.
 
-Estado: completada en su primera version funcional
+Status: completed in its first functional version
 
-## Fase 5. Contexto profundo
+## Phase 5. Deep Context
 
-- indexado semantico ligero
-- simbolos/LSP
-- memoria de proyecto
-- reglas persistentes por workspace
-- mejor seleccion automatica de contexto
+- lightweight semantic indexing
+- symbols/LSP
+- project memory
+- persistent workspace rules
+- better automatic context selection
 
-Entregable: respuestas mas precisas, menos contexto manual y mejor continuidad entre tareas.
+Deliverable: more precise responses, less manual context, and better continuity between tasks.
 
-Estado: completada en su primera version funcional
+Status: completed in its first functional version
 
-## Fase 6. Producto distribuible
+## Phase 6. Distributable Product
 
-- empaquetado multiplataforma base
-- auto-update configurado a nivel de producto
-- Open VSX como registry de extensiones por defecto
-- telemetria y observabilidad base
-- branding de binarios de Windows
-- release Win32 validado end-to-end
-- release portable Win32 validado end-to-end
-- splash y welcome page de produccion alineados con `OpenML Code`
-- welcome page inicial personalizada para `OpenML Code`
-- tema `OpenML Prussian Blue` aplicado por defecto en instalaciones nuevas
-- remocion de `Report Issue` del menu `Help` en la distribucion propia
+- baseline multi-platform packaging
+- product-level auto-update configuration
+- Open VSX as the default extension registry
+- baseline telemetry and observability
+- Windows binary branding
+- Win32 release validated end to end
+- Win32 portable release validated end to end
+- production splash and welcome page aligned with `OpenML Code`
+- initial welcome page customized for `OpenML Code`
+- `OpenML Prussian Blue` applied by default on fresh installs
+- `Report Issue` removed from the `Help` menu in the custom distribution
 
-Entregable: producto instalable con una primera base operativa de distribucion.
+Deliverable: installable product with a first operational distribution baseline.
 
-Estado: completada y cerrada en su primera base operativa, con instalador y portable de Windows validados
+Status: completed and closed in its first operational baseline, with Windows installer and portable build validated
 
-## Fase 7. Calidad visual y snippets
+## Phase 7. Visual Quality And Snippets
 
-- resaltado de sintaxis mas rico en bloques de codigo
-- acciones sobre snippets (`copy code`, etc.)
-- mayor pulido tipografico y visual del chat
-- mejor presentacion de respuestas largas y tecnicas
-- ajustes UX para propuestas editables (`Preview`, `Apply`, `Si / No`)
+- richer syntax highlighting in code blocks
+- snippet actions (`copy code`, etc.)
+- improved typography and visual polish in the chat
+- better presentation of long and technical responses
+- UX improvements for editable proposals (`Preview`, `Apply`, `Yes / No`)
 
-Entregable: experiencia visual mas profesional y comparable a IDEs AI maduros.
+Deliverable: a more professional visual experience comparable to mature AI IDEs.
 
-Estado: completada en su primera version funcional
+Status: completed in its first functional version
 
-## Fase 8. Robustez del agente
+## Phase 8. Agent Robustness
 
-- parser de errores mas inteligente
-- configuracion del numero maximo de intentos del fix loop
-- mejor tasa de extraccion de propuestas `openml-edit`
-- validaciones mas fuertes antes de aplicar cambios
-- mejor estrategia de retry cuando proveedores remotos devuelvan respuestas truncadas
-- barridos preventivos para evitar secretos reales en tests o fixtures
+- smarter error parser
+- configurable maximum number of fix-loop attempts
+- higher extraction success rate for `openml-edit`
+- stronger validations before applying changes
+- better retry strategy when remote providers return truncated responses
+- preventive sweeps to avoid real secrets in tests or fixtures
 
-Entregable: flujos de correccion y edicion mas consistentes entre modelos.
+Deliverable: more consistent correction and editing flows across models.
 
-Estado: pendiente
+Status: pending
 
-## Hito actual
+## Current Milestone
 
-La primera etapa del proyecto queda cerrada con:
+The first stage of the project is now closed with:
 
-- producto base distribuible en Windows
-- instalador y portable listos para comunidad
-- extension builtin del asistente ya integrada en el producto
-- `.vsix` preparado para `Open VSX`
-- experiencia inicial de bienvenida alineada con la marca `OpenML Code`
+- Windows-distributable base product
+- installer and portable build ready for the community
+- built-in assistant already integrated into the product
+- `.vsix` package prepared for `Open VSX`
+- initial welcome experience aligned with the `OpenML Code` brand
 
-El siguiente foco recomendado es distribucion avanzada, robustez del agente y refinamiento UX sobre casos reales de uso.
+The recommended next focus is advanced distribution, agent robustness, and UX refinement based on real usage.
 
-## Fase 9. Distribucion avanzada
+## Phase 9. Advanced Distribution
 
-- backend real de auto-update
-- validacion real de empaquetado Linux y macOS
-- pipeline CI/CD de releases firmados
-- telemetria conectada a una plataforma real
-- crash reporting y dashboards de observabilidad
+- real auto-update backend
+- real Linux and macOS packaging validation
+- CI/CD pipeline for signed releases
+- telemetry connected to a real platform
+- crash reporting and observability dashboards
 
-Entregable: beta privada distribuible y sostenible de mantener en varias plataformas.
+Deliverable: sustainably maintainable private beta distribution across multiple platforms.
 
-Estado: pendiente
+Status: pending
 
-## Prioridades inmediatas recomendadas
+## Recommended Immediate Priorities
 
-1. mejorar el render visual de snippets y anadir acciones sobre codigo
-2. hacer configurable el numero maximo de intentos del fix loop
-3. mejorar el parser de errores para priorizar fallos relevantes antes del siguiente parche
-4. definir icono/logo definitivo y completar branding multiplataforma
-5. evaluar una capa semantica mas rica con embeddings o servicio opcional
+1. improve snippet rendering and add more code actions
+2. make the maximum fix-loop retry count configurable
+3. improve error parsing so the next patch targets the most relevant failures first
+4. define the final logo/icon system and complete cross-platform branding
+5. evaluate a richer semantic layer with embeddings or an optional service

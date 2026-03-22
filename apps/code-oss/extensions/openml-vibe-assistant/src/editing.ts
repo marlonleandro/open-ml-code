@@ -215,29 +215,29 @@ function createFilePatch(filePath: string, before: string, after: string): strin
 
 export function buildUserFacingEditSummary(proposal: EditProposal): string {
 	const lines: string[] = [];
-	lines.push('## Cambios listos para revisar');
+	lines.push('## Changes Ready To Review');
 	lines.push('');
-	lines.push(proposal.summary || 'OpenML Assistant preparo una propuesta editable para este cambio.');
+	lines.push(proposal.summary || 'OpenML Assistant prepared an editable proposal for this change.');
 	lines.push('');
-	lines.push(`Archivos propuestos: ${proposal.files.length}`);
+	lines.push(`Proposed files: ${proposal.files.length}`);
 	if (proposal.files.length) {
 		lines.push('');
-		lines.push('### Archivos');
+		lines.push('### Files');
 		for (const file of proposal.files.slice(0, 12)) {
 			lines.push(`- \`${file.path}\``);
 		}
 		if (proposal.files.length > 12) {
-			lines.push(`- ... y ${proposal.files.length - 12} archivo(s) mas`);
+			lines.push(`- ... and ${proposal.files.length - 12} more file(s)`);
 		}
 	}
 
 	if (proposal.tests.length) {
 		lines.push('');
-		lines.push(`Tests sugeridos: ${proposal.tests.length}`);
+		lines.push(`Suggested tests: ${proposal.tests.length}`);
 	}
 
 	lines.push('');
-	lines.push('Usa `Preview Edits` para revisar los cambios y `Apply Edits` para aplicarlos.');
+	lines.push('Use `Preview Edits` to review the changes and `Apply Edits` to apply them.');
 	return lines.join('\n');
 }
 

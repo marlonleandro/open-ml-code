@@ -110,6 +110,8 @@ class DockBadgeManager {
 
 export abstract class BaseWindow extends Disposable implements IBaseWindow {
 
+	protected static readonly DEFAULT_UNRESPONSIVE_DIALOG_DELAY = 10 * 60 * 1000;
+
 	//#region Events
 
 	private readonly _onDidClose = this._register(new Emitter<void>());
@@ -139,6 +141,8 @@ export abstract class BaseWindow extends Disposable implements IBaseWindow {
 
 	protected _lastFocusTime = Date.now(); // window is shown on creation so take current time
 	get lastFocusTime(): number { return this._lastFocusTime; }
+	protected unresponsiveDialogDelay = BaseWindow.DEFAULT_UNRESPONSIVE_DIALOG_DELAY;
+	protected suppressUnresponsiveDialogUntil = Date.now() + BaseWindow.DEFAULT_UNRESPONSIVE_DIALOG_DELAY;
 
 	private maximizedWindowState: IWindowState | undefined;
 
@@ -738,6 +742,15 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 			samplePeriod = 15000;
 		}
 
+		const configuredDialogDelay = parseInt(this.environmentMainService.args['unresponsive-dialog-delay'] || `${BaseWindow.DEFAULT_UNRESPONSIVE_DIALOG_DELAY}`);
+		if (configuredDialogDelay > 0) {
+			this.unresponsiveDialogDelay = configuredDialogDelay;
+		} else {
+			this.logService.warn(`Invalid unresponsive dialog delay (${configuredDialogDelay}ms), using default.`);
+			this.unresponsiveDialogDelay = BaseWindow.DEFAULT_UNRESPONSIVE_DIALOG_DELAY;
+		}
+		this.suppressUnresponsiveDialogUntil = Date.now() + this.unresponsiveDialogDelay;
+
 		this.jsCallStackMap = new Map<string, number>();
 		this.jsCallStackEffectiveSampleCount = Math.round(samplePeriod / sampleInterval);
 		this.jsCallStackCollector = this._register(new Delayer<void>(sampleInterval));
@@ -967,6 +980,11 @@ export class CodeWindow extends BaseWindow implements ICodeWindow {
 					// - The window is destroyed i-e reopen or closed
 					// - sampling period is complete, default is 15s
 					this.jsCallStackCollectorStopScheduler.schedule();
+
+					if (Date.now() < this.suppressUnresponsiveDialogUntil) {
+						this.logService.warn(`CodeWindow: suppressing unresponsive dialog for ${Math.max(0, this.suppressUnresponsiveDialogUntil - Date.now())}ms grace period`);
+						return;
+					}
 
 					// Show Dialog
 					const { response, checkboxChecked } = await this.dialogMainService.showMessageBox({

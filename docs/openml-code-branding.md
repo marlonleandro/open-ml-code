@@ -1,18 +1,18 @@
 # OpenML Code Branding
 
-## Branding minimo aplicado
+## Minimum Branding Already Applied
 
-- nombre visible del producto: `OpenML Code`
+- visible product name: `OpenML Code`
 - `applicationName`: `openml-code`
-- carpeta de datos: `.openml-code`
-- protocolo URL: `openml-code`
-- identificadores base de Windows y macOS actualizados
-- nombre del manifiesto web y accesos Linux/Windows actualizados
+- data folder: `.openml-code`
+- URL protocol: `openml-code`
+- base Windows and macOS identifiers updated
+- web manifest and Linux/Windows shortcut names updated
 - `linuxIconName`: `openml-code`
 
-## Estado actual de identidad visual
+## Current Visual Identity Status
 
-Los assets principales del producto ya fueron sustituidos en estas rutas:
+The main product assets have already been replaced in these paths:
 
 - `apps/code-oss/resources/win32/code.ico`
 - `apps/code-oss/resources/win32/code_150x150.png`
@@ -24,16 +24,16 @@ Los assets principales del producto ya fueron sustituidos en estas rutas:
 - `apps/code-oss/resources/server/code-512.png`
 - `apps/code-oss/resources/server/favicon.ico`
 
-Mientras mantengas esos nombres de archivo, no hace falta cambiar las referencias actuales en manifiestos y packaging.
+As long as those filenames stay the same, current manifest and packaging references do not need to change.
 
-## Pendientes de identidad visual
+## Remaining Visual Identity Work
 
-- definir logo principal y lineamientos de marca finales
-- decidir si mas adelante se renombraran tambien los archivos fisicos `code.*` a `openml-code.*`
-- revisar splash, about y capturas promocionales cuando se prepare distribucion
+- define the final primary logo and brand guidelines
+- decide whether physical asset files such as `code.*` should later be renamed to `openml-code.*`
+- review splash, about, and promotional screenshots when distribution is prepared
 
-## Pendientes tecnicos recomendados
+## Recommended Remaining Technical Branding Work
 
-- revisar referencias residuales de `code-oss` en scripts de desarrollo, tests y package-lock
-- sustituir URLs de reporte y documentacion cuando exista repo propio
-- validar empaquetado Linux para confirmar que `openml-code` se propaga bien como icon name
+- review residual `code-oss` references in development scripts, tests, and lockfiles
+- replace report/documentation URLs once the final public repository and site are fully defined
+- validate Linux packaging to confirm `openml-code` propagates correctly as the icon name
