@@ -1,4 +1,4 @@
-# PROMPTS DE PRUEBA PARA MODO AGENT
+# Prompts de prueba para usar en modo Agent
 
 ## Prompt 1:
 
