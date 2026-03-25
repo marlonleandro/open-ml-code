@@ -575,11 +575,15 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				}
 			}
 
+			const visibleResponse = stripEditProposalBlock(rawResponse).trim();
+
 			if (editProposal) {
 				this.lastEditProposal = editProposal;
-				assistantMessage.content = buildUserFacingEditSummary(editProposal);
+				assistantMessage.content = [
+					visibleResponse,
+					buildUserFacingEditSummary(editProposal)
+				].filter(Boolean).join('\n\n');
 			} else if (requestMode === 'edit') {
-				const visibleResponse = stripEditProposalBlock(rawResponse).trim();
 				if (currentAttachments.length && visibleResponse) {
 					assistantMessage.content = visibleResponse;
 				} else {
@@ -588,7 +592,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 						: (visibleResponse + '\n\n> OpenML Assistant could not extract an editable proposal from this response. Ask the model to return the result as an `openml-edit` proposal with full file contents.').trim();
 				}
 			} else {
-				assistantMessage.content = stripEditProposalBlock(rawResponse).trim();
+				assistantMessage.content = visibleResponse;
 			}
 
 			this.lastAssistantResponse = assistantMessage.content.trim();
