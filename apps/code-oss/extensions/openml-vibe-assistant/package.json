@@ -143,6 +143,29 @@
           "markdownDescription": "Timeout en milisegundos para llamadas al proveedor del modelo.",
           "scope": "application"
         },
+        "openmlAssistant.semanticSearch.provider": {
+          "type": "string",
+          "enum": [
+            "local",
+            "openai",
+            "azurefoundry"
+          ],
+          "default": "local",
+          "markdownDescription": "Semantic retrieval provider used for workspace indexing. `local` keeps the current offline vector fallback. `openai` and `azurefoundry` enable real external embeddings with automatic fallback to local vectors if they fail.",
+          "scope": "application"
+        },
+        "openmlAssistant.semanticSearch.openaiModel": {
+          "type": "string",
+          "default": "text-embedding-3-small",
+          "markdownDescription": "Embedding model used when `openmlAssistant.semanticSearch.provider` is set to `openai`.",
+          "scope": "application"
+        },
+        "openmlAssistant.semanticSearch.azureFoundryDeployment": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Embedding deployment or model name used when `openmlAssistant.semanticSearch.provider` is set to `azurefoundry`.",
+          "scope": "application"
+        },
         "openmlAssistant.ollama.baseUrl": {
           "type": "string",
           "default": "http://127.0.0.1:11434",

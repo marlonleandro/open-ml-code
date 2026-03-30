@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { buildWorkspaceMemoryBlock } from './memory';
 import { buildProjectHistoryContext } from './projectState';
+import { getProviderSecret } from './secrets';
 
 type IndexChunk = {
 	path: string;
@@ -16,22 +17,30 @@ type PersistedSemanticIndex = {
 	version: number;
 	workspaceRoot: string;
 	createdAt: number;
+	providerSignature: string;
 	chunks: IndexChunk[];
 };
 
-const SEMANTIC_INDEX_VERSION = 1;
+type SemanticEmbeddingProvider = 'local' | 'openai' | 'azurefoundry';
+
+const SEMANTIC_INDEX_VERSION = 2;
 const MAX_INDEXED_FILES = 150;
 const MAX_CONTEXT_CHUNKS = 6;
 const CHUNK_SIZE = 1200;
 const CHUNK_OVERLAP = 200;
 const VECTOR_DIMENSIONS = 192;
 const INDEX_MAX_AGE_MS = 5 * 60 * 1000;
+const EXTERNAL_EMBEDDING_BATCH_SIZE = 24;
+const EXTERNAL_EMBEDDING_TIMEOUT_MS = 45000;
+const EXTERNAL_EMBEDDING_FAILURE_COOLDOWN_MS = 5 * 60 * 1000;
 const EXCLUDED_DIRS = new Set(['node_modules', '.git', 'out', '.build', 'dist', 'coverage']);
 
 let storageRoot: vscode.Uri | undefined;
 let lastIndexedAt = 0;
 let indexedChunks: IndexChunk[] = [];
+let indexedProviderSignature = getProviderSignature();
 let loadingIndexPromise: Promise<void> | undefined;
+let externalEmbeddingsDisabledUntil = 0;
 
 export function initializeContextStorage(storageUri?: vscode.Uri): void {
 	storageRoot = storageUri;
@@ -43,6 +52,34 @@ function getWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
 
 function getWorkspaceRoot(): string | undefined {
 	return getWorkspaceFolder()?.uri.fsPath;
+}
+
+function getConfig(): vscode.WorkspaceConfiguration {
+	return vscode.workspace.getConfiguration('openmlAssistant');
+}
+
+function getString(path: string, fallback = ''): string {
+	return getConfig().get<string>(path, fallback).trim();
+}
+
+function getSemanticEmbeddingProvider(): SemanticEmbeddingProvider {
+	return getConfig().get<SemanticEmbeddingProvider>('semanticSearch.provider', 'local');
+}
+
+function getSemanticEmbeddingModel(provider: SemanticEmbeddingProvider): string {
+	switch (provider) {
+		case 'openai':
+			return getString('semanticSearch.openaiModel', 'text-embedding-3-small');
+		case 'azurefoundry':
+			return getString('semanticSearch.azureFoundryDeployment');
+		case 'local':
+		default:
+			return 'local-hash';
+	}
+}
+
+function getProviderSignature(provider = getSemanticEmbeddingProvider()): string {
+	return `${provider}:${getSemanticEmbeddingModel(provider)}`;
 }
 
 function getIndexStorageUri(): vscode.Uri | undefined {
@@ -116,6 +153,159 @@ function cosineSimilarity(left: number[], right: number[]): number {
 		score += left[index] * right[index];
 	}
 	return score;
+}
+
+function normalizeVector(vector: number[]): number[] {
+	let magnitude = 0;
+	for (const value of vector) {
+		magnitude += value * value;
+	}
+
+	if (magnitude <= 0) {
+		return vector;
+	}
+
+	const normalizer = Math.sqrt(magnitude);
+	return vector.map(value => Number((value / normalizer).toFixed(6)));
+}
+
+function createAbortableTimeoutSignal(timeoutMs: number): AbortSignal {
+	return AbortSignal.timeout(timeoutMs);
+}
+
+async function postJsonWithTimeout(url: string, body: unknown, init: RequestInit = {}, timeoutMs = EXTERNAL_EMBEDDING_TIMEOUT_MS): Promise<any> {
+	const response = await fetch(url, {
+		method: 'POST',
+		...init,
+		body: JSON.stringify(body),
+		signal: createAbortableTimeoutSignal(timeoutMs)
+	});
+
+	if (!response.ok) {
+		throw new Error(`Request failed (${response.status}): ${await response.text()}`);
+	}
+
+	return response.json();
+}
+
+function buildOpenAIEmbeddingsUrl(baseUrl: string): string {
+	const normalized = baseUrl.trim().replace(/\/$/, '');
+	return normalized.endsWith('/embeddings') ? normalized : `${normalized}/embeddings`;
+}
+
+function buildAzureFoundryEmbeddingsUrl(host: string, apiVersion: string): string {
+	const normalizedVersion = apiVersion.trim() || '2025-04-01-preview';
+	const rawHost = host.trim();
+	if (!rawHost) {
+		return `/openai/v1/embeddings?api-version=${encodeURIComponent(normalizedVersion)}`;
+	}
+
+	const parsedUrl = new URL(rawHost);
+	const normalizedPath = parsedUrl.pathname.replace(/\/$/, '');
+	if (!/\/openai(?:\/v1)?\/embeddings$/i.test(normalizedPath)) {
+		parsedUrl.pathname = `${normalizedPath}/openai/v1/embeddings`;
+	}
+
+	parsedUrl.searchParams.set('api-version', normalizedVersion);
+	return parsedUrl.toString();
+}
+
+function buildAzureFoundryHeaders(apiKey: string, authMode: string): Record<string, string> {
+	return authMode === 'api-key'
+		? { 'Content-Type': 'application/json', 'api-key': apiKey }
+		: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` };
+}
+
+function splitIntoBatches<T>(items: T[], size: number): T[][] {
+	const batches: T[][] = [];
+	for (let index = 0; index < items.length; index += size) {
+		batches.push(items.slice(index, index + size));
+	}
+	return batches;
+}
+
+async function createOpenAIEmbeddings(texts: string[]): Promise<number[][]> {
+	const baseUrl = getString('openai.baseUrl', 'https://api.openai.com/v1');
+	const apiKey = (await getProviderSecret('openai')).trim();
+	const model = getSemanticEmbeddingModel('openai');
+	if (!baseUrl || !apiKey || !model) {
+		throw new Error('OpenAI semantic search is not fully configured.');
+	}
+
+	const json = await postJsonWithTimeout(buildOpenAIEmbeddingsUrl(baseUrl), {
+		model,
+		input: texts
+	}, {
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${apiKey}`
+		}
+	});
+
+	return (json?.data ?? []).map((item: { embedding?: number[] }) => normalizeVector(Array.isArray(item?.embedding) ? item.embedding : []));
+}
+
+async function createAzureFoundryEmbeddings(texts: string[]): Promise<number[][]> {
+	const host = getString('azureFoundry.host');
+	const apiVersion = getString('azureFoundry.apiVersion', '2025-04-01-preview');
+	const apiKey = (await getProviderSecret('azurefoundry')).trim();
+	const deployment = getSemanticEmbeddingModel('azurefoundry');
+	const authMode = getString('azureFoundry.authMode', 'bearer') || 'bearer';
+	if (!host || !apiKey || !deployment) {
+		throw new Error('Azure Foundry semantic search is not fully configured.');
+	}
+
+	const json = await postJsonWithTimeout(buildAzureFoundryEmbeddingsUrl(host, apiVersion), {
+		model: deployment,
+		input: texts
+	}, {
+		headers: buildAzureFoundryHeaders(apiKey, authMode)
+	});
+
+	return (json?.data ?? []).map((item: { embedding?: number[] }) => normalizeVector(Array.isArray(item?.embedding) ? item.embedding : []));
+}
+
+async function createExternalEmbeddings(texts: string[]): Promise<number[][]> {
+	const provider = getSemanticEmbeddingProvider();
+	if (provider === 'local') {
+		return texts.map(text => createVector(tokenize(text)));
+	}
+
+	if (Date.now() < externalEmbeddingsDisabledUntil) {
+		throw new Error('External semantic embeddings are temporarily disabled after a recent failure.');
+	}
+
+	try {
+		const batches = splitIntoBatches(texts, EXTERNAL_EMBEDDING_BATCH_SIZE);
+		const vectors: number[][] = [];
+		for (const batch of batches) {
+			const batchVectors = provider === 'openai'
+				? await createOpenAIEmbeddings(batch)
+				: await createAzureFoundryEmbeddings(batch);
+			vectors.push(...batchVectors);
+		}
+		if (vectors.length !== texts.length) {
+			throw new Error('External semantic embeddings returned an unexpected number of vectors.');
+		}
+		return vectors;
+	} catch (error) {
+		externalEmbeddingsDisabledUntil = Date.now() + EXTERNAL_EMBEDDING_FAILURE_COOLDOWN_MS;
+		console.warn('[OpenML Assistant] External semantic embeddings failed. Falling back to local vectors.', error);
+		throw error;
+	}
+}
+
+async function createSemanticVectors(inputs: string[]): Promise<number[][]> {
+	const provider = getSemanticEmbeddingProvider();
+	if (provider === 'local') {
+		return inputs.map(input => createVector(tokenize(input)));
+	}
+
+	try {
+		return await createExternalEmbeddings(inputs);
+	} catch {
+		return inputs.map(input => createVector(tokenize(input)));
+	}
 }
 
 async function readFileText(uri: vscode.Uri): Promise<string> {
@@ -234,6 +424,7 @@ async function persistSemanticIndex(): Promise<void> {
 			version: SEMANTIC_INDEX_VERSION,
 			workspaceRoot,
 			createdAt: lastIndexedAt,
+			providerSignature: getProviderSignature(),
 			chunks: indexedChunks
 		};
 		const json = JSON.stringify(payload);
@@ -256,6 +447,7 @@ async function loadPersistedSemanticIndex(): Promise<void> {
 		if (
 			parsed.version !== SEMANTIC_INDEX_VERSION ||
 			parsed.workspaceRoot !== workspaceRoot ||
+			parsed.providerSignature !== getProviderSignature() ||
 			!Array.isArray(parsed.chunks)
 		) {
 			return;
@@ -270,6 +462,7 @@ async function loadPersistedSemanticIndex(): Promise<void> {
 			typeof chunk.fileSize === 'number'
 		);
 		lastIndexedAt = parsed.createdAt || 0;
+		indexedProviderSignature = parsed.providerSignature || getProviderSignature();
 	} catch {
 		// ignore cache miss / parse failures
 	}
@@ -277,8 +470,9 @@ async function loadPersistedSemanticIndex(): Promise<void> {
 
 export async function rebuildSemanticIndex(): Promise<number> {
 	const files = await collectWorkspaceFiles(MAX_INDEXED_FILES);
+	const providerSignature = getProviderSignature();
 	const previousByFile = new Map<string, IndexChunk[]>();
-	for (const chunk of indexedChunks) {
+	for (const chunk of indexedProviderSignature === providerSignature ? indexedChunks : []) {
 		const entries = previousByFile.get(chunk.path) ?? [];
 		entries.push(chunk);
 		previousByFile.set(chunk.path, entries);
@@ -313,13 +507,18 @@ export async function rebuildSemanticIndex(): Promise<number> {
 			continue;
 		}
 
-		for (const chunk of chunkText(content)) {
+		const chunksForFile = chunkText(content);
+		const vectorInputs = chunksForFile.map(chunk => `${file.fsPath}\n${chunk}`);
+		const vectors = await createSemanticVectors(vectorInputs);
+
+		for (let index = 0; index < chunksForFile.length; index += 1) {
+			const chunk = chunksForFile[index];
 			const tokens = buildChunkTokens(file.fsPath, chunk);
 			nextChunks.push({
 				path: file.fsPath,
 				preview: buildChunkPreview(chunk),
 				tokens,
-				vector: createVector(tokens),
+				vector: vectors[index] ?? createVector(tokens),
 				fileMtime: stat.mtime,
 				fileSize: stat.size
 			});
@@ -328,6 +527,7 @@ export async function rebuildSemanticIndex(): Promise<number> {
 
 	indexedChunks = nextChunks;
 	lastIndexedAt = Date.now();
+	indexedProviderSignature = providerSignature;
 	await persistSemanticIndex();
 	return indexedChunks.length;
 }
@@ -343,7 +543,11 @@ async function ensureSemanticIndex(): Promise<void> {
 		await loadingIndexPromise;
 	}
 
-	if (!indexedChunks.length || Date.now() - lastIndexedAt > INDEX_MAX_AGE_MS) {
+	if (
+		!indexedChunks.length ||
+		indexedProviderSignature !== getProviderSignature() ||
+		Date.now() - lastIndexedAt > INDEX_MAX_AGE_MS
+	) {
 		await rebuildSemanticIndex();
 	}
 }
@@ -394,7 +598,7 @@ export async function getRelevantWorkspaceSymbols(query: string, limit = 12): Pr
 export async function buildDeepContext(query: string, activeFileName?: string, selectedText?: string): Promise<string> {
 	await ensureSemanticIndex();
 	const queryTokens = tokenize(`${query}\n${selectedText ?? ''}`);
-	const queryVector = createVector(queryTokens);
+	const [queryVector] = await createSemanticVectors([`${query}\n${selectedText ?? ''}`]);
 	const memoryBlock = buildWorkspaceMemoryBlock();
 	const historyBlock = await buildProjectHistoryContext();
 	const symbols = await getRelevantWorkspaceSymbols(query, 10);
