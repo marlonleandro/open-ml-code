@@ -21,6 +21,7 @@ import {
 	type PromptAttachment,
 	type AttachmentKind
 } from './providers';
+import { getEnabledMcpServerCount } from './mcp';
 import { applyEditProposal, buildUserFacingEditSummary, clearEditPreviewArtifacts, extractEditProposal, looksLikePartialEditProposal, previewEditProposal, showSuggestedTests, stripEditProposalBlock, type EditProposal } from './editing';
 import { buildFixLoopPrompt, maxFixAttempts, runTestsCommand, tryHandleToolPrompt } from './tools';
 import { clearProjectChatHistory, loadProjectChatHistory, saveProjectChatHistory, updatePlanningFile, writeActivityLog, type PersistedChatMessage } from './projectState';
@@ -75,6 +76,7 @@ type ChatState = {
 	modelLabel: string;
 	models: string[];
 	localFirst: boolean;
+	mcpServerCount: number;
 	mode: AssistantMode;
 	hasEditProposal: boolean;
 	showAgentApplyPrompt: boolean;
@@ -769,6 +771,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				modelLabel: getCurrentModelLabel(provider) || 'Not configured',
 				models,
 				localFirst: isLocalProvider(provider),
+				mcpServerCount: getEnabledMcpServerCount(),
 				mode: this.mode,
 				hasEditProposal: !!this.lastEditProposal?.files.length,
 				showAgentApplyPrompt: this.mode === 'agent' && !!this.lastEditProposal?.files.length,
@@ -1728,7 +1731,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 
 			providerSelect.value = state.provider;
 			renderModels(state.models, state.modelLabel);
-			statusText.textContent = state.providerLabel + ' | ' + state.modelLabel + (state.localFirst ? ' | local' : ' | remote');
+			statusText.textContent = state.providerLabel + ' | ' + state.modelLabel + (state.localFirst ? ' | local' : ' | remote') + ' | MCP: ' + String(state.mcpServerCount ?? 0);
 			hintText.textContent = state.hasEditProposal
 				? (state.showAgentApplyPrompt
 					? 'Changes are ready. Confirm with Yes / No or use Preview Edits to review before applying.'

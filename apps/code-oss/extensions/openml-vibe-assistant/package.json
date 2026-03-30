@@ -31,6 +31,7 @@
     "onCommand:openmlAssistant.selectProvider",
     "onCommand:openmlAssistant.openSettings",
     "onCommand:openmlAssistant.manageApiKeys",
+    "onCommand:openmlAssistant.showMcpServers",
     "onView:openmlAssistant.chatView",
     "onCommand:openmlAssistant.rebuildIndex",
     "onCommand:openmlAssistant.rememberProjectNote",
@@ -44,6 +45,12 @@
     }
   },
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "configured-servers",
+        "label": "OpenML Assistant MCP Servers"
+      }
+    ],
     "viewsContainers": {
       "secondarySidebar": [
         {
@@ -94,6 +101,11 @@
       {
         "command": "openmlAssistant.manageApiKeys",
         "title": "Manage API Keys",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.showMcpServers",
+        "title": "Show MCP Servers",
         "category": "OpenML Assistant"
       },
       {
@@ -164,6 +176,65 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Embedding deployment or model name used when `openmlAssistant.semanticSearch.provider` is set to `azurefoundry`.",
+          "scope": "application"
+        },
+        "openmlAssistant.mcp.servers": {
+          "type": "array",
+          "default": [],
+          "markdownDescription": "List of MCP servers published by OpenML Assistant to the editor. This first phase supports `stdio` and `http` definitions and lets the built-in MCP infrastructure discover them.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "description": "Human-readable server name."
+              },
+              "transport": {
+                "type": "string",
+                "enum": [
+                  "stdio",
+                  "http"
+                ],
+                "description": "Transport type for the MCP server."
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": true,
+                "description": "Whether this MCP server should be published."
+              },
+              "command": {
+                "type": "string",
+                "description": "Executable used for stdio MCP servers."
+              },
+              "args": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Arguments for stdio MCP servers."
+              },
+              "cwd": {
+                "type": "string",
+                "description": "Optional working directory for stdio MCP servers."
+              },
+              "env": {
+                "type": "object",
+                "description": "Optional environment overrides for stdio MCP servers."
+              },
+              "url": {
+                "type": "string",
+                "description": "Endpoint URL for HTTP MCP servers."
+              },
+              "headers": {
+                "type": "object",
+                "description": "Optional headers for HTTP MCP servers."
+              },
+              "version": {
+                "type": "string",
+                "description": "Optional version identifier used by the editor to detect tool refreshes."
+              }
+            }
+          },
           "scope": "application"
         },
         "openmlAssistant.ollama.baseUrl": {

@@ -11,6 +11,7 @@ const remoteProviders = [
 type AssistantModules = {
 	context: typeof import('./context');
 	memory: typeof import('./memory');
+	mcp: typeof import('./mcp');
 	providers: typeof import('./providers');
 	panel: typeof import('./panel');
 	secrets: typeof import('./secrets');
@@ -25,15 +26,16 @@ let runtimePromise: Promise<AssistantRuntime> | undefined;
 let webviewRegistered = false;
 
 async function loadModules(): Promise<AssistantModules> {
-	const [context, memory, providers, panel, secrets] = await Promise.all([
+	const [context, memory, mcp, providers, panel, secrets] = await Promise.all([
 		import('./context'),
 		import('./memory'),
+		import('./mcp'),
 		import('./providers'),
 		import('./panel'),
 		import('./secrets')
 	]);
 
-	return { context, memory, providers, panel, secrets };
+	return { context, memory, mcp, providers, panel, secrets };
 }
 
 async function ensureAssistant(context: vscode.ExtensionContext): Promise<AssistantRuntime> {
@@ -57,6 +59,12 @@ async function ensureAssistant(context: vscode.ExtensionContext): Promise<Assist
 				modules.memory.initializeWorkspaceMemory(context.workspaceState);
 			} catch (error) {
 				console.error('[OpenML Assistant] Failed to initialize workspace memory.', error);
+			}
+
+			try {
+				context.subscriptions.push(modules.mcp.registerConfiguredMcpServers(context));
+			} catch (error) {
+				console.error('[OpenML Assistant] Failed to register MCP server definitions.', error);
 			}
 
 			void modules.secrets.migrateLegacySecrets().catch(error => {
