@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
 import { buildDeepContext, getRelevantWorkspaceSymbols, rebuildSemanticIndex } from './context';
+import { getAllMcpServerSummaries, getRuntimeEditorMcpServerSummaries, getWorkspaceMcpServerSummaries } from './mcp';
 import { addWorkspaceRule, buildWorkspaceMemoryBlock, clearProjectMemoryNotes, clearWorkspaceRules, getWorkspaceRules, rememberProjectNote } from './memory';
 
 type AssistantMode = 'agent' | 'ask' | 'edit' | 'plan';
@@ -453,6 +454,125 @@ async function contextTool(query: string): Promise<ToolResult> {
 	};
 }
 
+async function mcpTool(): Promise<ToolResult> {
+	const summaries = await getAllMcpServerSummaries();
+	return {
+		title: 'Available MCP servers',
+		content: summaries.length
+			? summaries.map(summary => `- ${summary.label} (${summary.transport.toUpperCase()}, ${summary.sourceLabel})${summary.enabled ? '' : ' [disabled]'}: ${summary.target}`).join('\n')
+			: 'No MCP servers are configured yet.',
+		followUpPrompt: undefined
+	};
+}
+
+async function mcpWorkspaceTool(): Promise<ToolResult> {
+	const summaries = await getWorkspaceMcpServerSummaries();
+	return {
+		title: 'Workspace MCP servers',
+		content: summaries.length
+			? summaries.map(summary => `- ${summary.label} (${summary.transport.toUpperCase()}, ${summary.sourceLabel}): ${summary.target}`).join('\n')
+			: 'No workspace MCP servers were found in `.mcp.json` or `.vscode/mcp.json`.'
+	};
+}
+
+async function mcpLiveTool(): Promise<ToolResult> {
+	const summaries = getRuntimeEditorMcpServerSummaries();
+	return {
+		title: 'Live editor MCP servers',
+		content: summaries.length
+			? summaries.map(summary => `- ${summary.label} (${summary.transport.toUpperCase()}, ${summary.sourceLabel}): ${summary.target}`).join('\n')
+			: 'No live MCP servers were reported by the editor runtime registry.'
+	};
+}
+
+async function mcpResourcesTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.browseMcpResources');
+	return {
+		title: 'MCP resource browser',
+		content: 'Opened the built-in MCP resource browser. Select a resource there to inspect what is currently available from your MCP servers.'
+	};
+}
+
+async function mcpManageTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.manageMcpServers');
+	return {
+		title: 'MCP server manager',
+		content: 'Opened the built-in MCP server manager. You can start, stop, restart, inspect output, and browse resources for configured MCP servers there.'
+	};
+}
+
+async function mcpAddTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.addMcpServer');
+	return {
+		title: 'Add MCP server',
+		content: 'Opened the built-in Add MCP Server flow so you can register a new MCP configuration safely through the editor UI.'
+	};
+}
+
+async function mcpCatalogTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.browseMcpServers');
+	return {
+		title: 'MCP server catalog',
+		content: 'Opened the built-in MCP server browser so you can discover or inspect additional MCP servers.'
+	};
+}
+
+async function mcpInstalledTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.showInstalledMcpServers');
+	return {
+		title: 'Installed MCP servers',
+		content: 'Opened the installed MCP servers view so you can inspect the MCP servers already available in the editor.'
+	};
+}
+
+async function mcpConfigTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.openMcpConfiguration');
+	return {
+		title: 'MCP configuration',
+		content: 'Opened the user MCP configuration so you can inspect or edit MCP server settings managed by the editor.'
+	};
+}
+
+async function mcpWorkspaceConfigTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.openWorkspaceMcpConfiguration');
+	return {
+		title: 'Workspace MCP configuration',
+		content: 'Opened the workspace MCP configuration so you can inspect or edit `.mcp.json` or `.vscode/mcp.json` for this project.'
+	};
+}
+
+async function mcpInitTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.initializeWorkspaceMcpConfiguration');
+	return {
+		title: 'Initialize workspace MCP',
+		content: 'Opened a guided flow to create a starter workspace MCP configuration in `.mcp.json` or `.vscode/mcp.json`.'
+	};
+}
+
+async function mcpGatewayTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.startMcpGateway');
+	return {
+		title: 'MCP gateway',
+		content: 'Started the editor MCP gateway. External processes can now connect to the editor MCP endpoint shown by OpenML Assistant.'
+	};
+}
+
+async function mcpGatewayStatusTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.showMcpGateway');
+	return {
+		title: 'MCP gateway status',
+		content: 'Displayed the current MCP gateway address if the gateway is running.'
+	};
+}
+
+async function mcpGatewayStopTool(): Promise<ToolResult> {
+	await vscode.commands.executeCommand('openmlAssistant.stopMcpGateway');
+	return {
+		title: 'MCP gateway stopped',
+		content: 'Stopped the editor MCP gateway if it was running.'
+	};
+}
+
 async function fixLoopTool(command?: string): Promise<ToolResult> {
 	const testResult = await runTestsCommand(command, true);
 	return {
@@ -547,6 +667,62 @@ export async function tryHandleToolPrompt(prompt: string): Promise<ToolResult | 
 		return contextTool(trimmed.slice('/context '.length).trim());
 	}
 
+	if (trimmed === '/mcp') {
+		return mcpTool();
+	}
+
+	if (trimmed === '/mcp-workspace') {
+		return mcpWorkspaceTool();
+	}
+
+	if (trimmed === '/mcp-live') {
+		return mcpLiveTool();
+	}
+
+	if (trimmed === '/mcp-resources') {
+		return mcpResourcesTool();
+	}
+
+	if (trimmed === '/mcp-manage') {
+		return mcpManageTool();
+	}
+
+	if (trimmed === '/mcp-add') {
+		return mcpAddTool();
+	}
+
+	if (trimmed === '/mcp-catalog') {
+		return mcpCatalogTool();
+	}
+
+	if (trimmed === '/mcp-installed') {
+		return mcpInstalledTool();
+	}
+
+	if (trimmed === '/mcp-config') {
+		return mcpConfigTool();
+	}
+
+	if (trimmed === '/mcp-workspace-config') {
+		return mcpWorkspaceConfigTool();
+	}
+
+	if (trimmed === '/mcp-init') {
+		return mcpInitTool();
+	}
+
+	if (trimmed === '/mcp-gateway') {
+		return mcpGatewayTool();
+	}
+
+	if (trimmed === '/mcp-gateway-status') {
+		return mcpGatewayStatusTool();
+	}
+
+	if (trimmed === '/mcp-gateway-stop') {
+		return mcpGatewayStopTool();
+	}
+
 	return {
 		title: 'OpenML Assistant tools',
 		content: [
@@ -566,7 +742,21 @@ export async function tryHandleToolPrompt(prompt: string): Promise<ToolResult | 
 			'/clear-rules',
 			'/symbols <query>',
 			'/context <query>',
-			'/reindex'
+			'/reindex',
+			'/mcp',
+			'/mcp-workspace',
+			'/mcp-live',
+			'/mcp-init',
+			'/mcp-gateway',
+			'/mcp-gateway-status',
+			'/mcp-gateway-stop',
+			'/mcp-manage',
+			'/mcp-add',
+			'/mcp-catalog',
+			'/mcp-installed',
+			'/mcp-resources',
+			'/mcp-config',
+			'/mcp-workspace-config'
 		].join('\n')
 	};
 }

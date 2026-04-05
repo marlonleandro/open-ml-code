@@ -32,6 +32,18 @@
     "onCommand:openmlAssistant.openSettings",
     "onCommand:openmlAssistant.manageApiKeys",
     "onCommand:openmlAssistant.showMcpServers",
+    "onCommand:openmlAssistant.manageMcpServers",
+    "onCommand:openmlAssistant.addMcpServer",
+    "onCommand:openmlAssistant.browseMcpServers",
+    "onCommand:openmlAssistant.showInstalledMcpServers",
+    "onCommand:openmlAssistant.showRuntimeMcpServers",
+    "onCommand:openmlAssistant.browseMcpResources",
+    "onCommand:openmlAssistant.openMcpConfiguration",
+    "onCommand:openmlAssistant.openWorkspaceMcpConfiguration",
+    "onCommand:openmlAssistant.initializeWorkspaceMcpConfiguration",
+    "onCommand:openmlAssistant.startMcpGateway",
+    "onCommand:openmlAssistant.showMcpGateway",
+    "onCommand:openmlAssistant.stopMcpGateway",
     "onView:openmlAssistant.chatView",
     "onCommand:openmlAssistant.rebuildIndex",
     "onCommand:openmlAssistant.rememberProjectNote",
@@ -106,6 +118,66 @@
       {
         "command": "openmlAssistant.showMcpServers",
         "title": "Show MCP Servers",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.manageMcpServers",
+        "title": "Manage MCP Servers",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.addMcpServer",
+        "title": "Add MCP Server",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.browseMcpServers",
+        "title": "Browse MCP Servers",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.showInstalledMcpServers",
+        "title": "Show Installed MCP Servers",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.showRuntimeMcpServers",
+        "title": "Show Live MCP Servers",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.browseMcpResources",
+        "title": "Browse MCP Resources",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.openMcpConfiguration",
+        "title": "Open MCP Configuration",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.openWorkspaceMcpConfiguration",
+        "title": "Open Workspace MCP Configuration",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.initializeWorkspaceMcpConfiguration",
+        "title": "Initialize Workspace MCP Configuration",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.startMcpGateway",
+        "title": "Start MCP Gateway",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.showMcpGateway",
+        "title": "Show MCP Gateway",
+        "category": "OpenML Assistant"
+      },
+      {
+        "command": "openmlAssistant.stopMcpGateway",
+        "title": "Stop MCP Gateway",
         "category": "OpenML Assistant"
       },
       {

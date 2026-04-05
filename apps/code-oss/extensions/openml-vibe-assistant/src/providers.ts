@@ -858,7 +858,7 @@ export async function streamAssistantResponse(input: WorkspacePrompt, callbacks:
 	const provider = getActiveProvider();
 	const enrichedInput: WorkspacePrompt = {
 		...input,
-		extraContext: await buildDeepContext(input.prompt, input.activeFileName, input.selectedText)
+		extraContext: await buildDeepContext(input.prompt, input.activeFileName, input.selectedText, input.mode)
 	};
 	assertProviderSupportsAttachments(provider, enrichedInput);
 

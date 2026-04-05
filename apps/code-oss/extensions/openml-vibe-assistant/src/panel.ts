@@ -21,7 +21,7 @@ import {
 	type PromptAttachment,
 	type AttachmentKind
 } from './providers';
-import { getEnabledMcpServerCount } from './mcp';
+import { getKnownMcpServerCount } from './mcp';
 import { applyEditProposal, buildUserFacingEditSummary, clearEditPreviewArtifacts, extractEditProposal, looksLikePartialEditProposal, previewEditProposal, showSuggestedTests, stripEditProposalBlock, type EditProposal } from './editing';
 import { buildFixLoopPrompt, maxFixAttempts, runTestsCommand, tryHandleToolPrompt } from './tools';
 import { clearProjectChatHistory, loadProjectChatHistory, saveProjectChatHistory, updatePlanningFile, writeActivityLog, type PersistedChatMessage } from './projectState';
@@ -53,6 +53,18 @@ type WebviewInboundMessage =
 	| { type: 'selectMode'; mode: AssistantMode }
 	| { type: 'openSettings' }
 	| { type: 'manageApiKeys' }
+	| { type: 'manageMcpServers' }
+	| { type: 'addMcpServer' }
+	| { type: 'browseMcpServers' }
+	| { type: 'showInstalledMcpServers' }
+	| { type: 'showRuntimeMcpServers' }
+	| { type: 'browseMcpResources' }
+	| { type: 'openMcpConfiguration' }
+	| { type: 'openWorkspaceMcpConfiguration' }
+	| { type: 'initializeWorkspaceMcpConfiguration' }
+	| { type: 'startMcpGateway' }
+	| { type: 'showMcpGateway' }
+	| { type: 'stopMcpGateway' }
 	| { type: 'refreshModels' }
 	| { type: 'previewEdits' }
 	| { type: 'applyEdits' }
@@ -438,6 +450,42 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				await vscode.commands.executeCommand('openmlAssistant.manageApiKeys');
 				await this.syncState();
 				return;
+			case 'manageMcpServers':
+				await vscode.commands.executeCommand('openmlAssistant.manageMcpServers');
+				return;
+			case 'addMcpServer':
+				await vscode.commands.executeCommand('openmlAssistant.addMcpServer');
+				return;
+			case 'browseMcpServers':
+				await vscode.commands.executeCommand('openmlAssistant.browseMcpServers');
+				return;
+			case 'showInstalledMcpServers':
+				await vscode.commands.executeCommand('openmlAssistant.showInstalledMcpServers');
+				return;
+			case 'showRuntimeMcpServers':
+				await vscode.commands.executeCommand('openmlAssistant.showRuntimeMcpServers');
+				return;
+			case 'browseMcpResources':
+				await vscode.commands.executeCommand('openmlAssistant.browseMcpResources');
+				return;
+			case 'openMcpConfiguration':
+				await vscode.commands.executeCommand('openmlAssistant.openMcpConfiguration');
+				return;
+			case 'openWorkspaceMcpConfiguration':
+				await vscode.commands.executeCommand('openmlAssistant.openWorkspaceMcpConfiguration');
+				return;
+			case 'initializeWorkspaceMcpConfiguration':
+				await vscode.commands.executeCommand('openmlAssistant.initializeWorkspaceMcpConfiguration');
+				return;
+			case 'startMcpGateway':
+				await vscode.commands.executeCommand('openmlAssistant.startMcpGateway');
+				return;
+			case 'showMcpGateway':
+				await vscode.commands.executeCommand('openmlAssistant.showMcpGateway');
+				return;
+			case 'stopMcpGateway':
+				await vscode.commands.executeCommand('openmlAssistant.stopMcpGateway');
+				return;
 			case 'refreshModels':
 				await this.syncState(true);
 				return;
@@ -771,7 +819,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 				modelLabel: getCurrentModelLabel(provider) || 'Not configured',
 				models,
 				localFirst: isLocalProvider(provider),
-				mcpServerCount: getEnabledMcpServerCount(),
+				mcpServerCount: await getKnownMcpServerCount(),
 				mode: this.mode,
 				hasEditProposal: !!this.lastEditProposal?.files.length,
 				showAgentApplyPrompt: this.mode === 'agent' && !!this.lastEditProposal?.files.length,
@@ -891,6 +939,11 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			gap: 2px;
 			z-index: 20;
 			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+		}
+
+		.menu.menu-up {
+			top: auto;
+			bottom: calc(100% + 6px);
 		}
 
 		.menu.hidden { display: none; }
@@ -1249,6 +1302,30 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 			<div class="bottom">
 				<div id="modeSelector" class="mode-selector">${modeButtonsMarkup}</div>
 				<div class="composer-actions">
+					<div class="menu-wrap">
+						<button id="mcpButton" class="icon-button" type="button" aria-label="MCP actions">
+							<svg class="attach-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+								<path d="M7 7.75C7 6.7835 7.7835 6 8.75 6H11.25C12.2165 6 13 6.7835 13 7.75V9.25C13 10.2165 12.2165 11 11.25 11H8.75C7.7835 11 7 10.2165 7 9.25V7.75Z" fill="currentColor"/>
+								<path d="M11 14.75C11 13.7835 11.7835 13 12.75 13H15.25C16.2165 13 17 13.7835 17 14.75V16.25C17 17.2165 16.2165 18 15.25 18H12.75C11.7835 18 11 17.2165 11 16.25V14.75Z" fill="currentColor"/>
+								<path d="M14.5303 8.46967C14.8232 8.17678 15.2981 8.17678 15.591 8.46967L17.7803 10.659C18.0732 10.9519 18.0732 11.4268 17.7803 11.7197C17.4874 12.0126 17.0126 12.0126 16.7197 11.7197L14.5303 9.53033C14.2374 9.23744 14.2374 8.76256 14.5303 8.46967Z" fill="currentColor"/>
+								<path d="M8.28033 12.2803C8.57322 11.9874 9.0481 11.9874 9.34099 12.2803L11.5303 14.4697C11.8232 14.7626 11.8232 15.2374 11.5303 15.5303C11.2374 15.8232 10.7626 15.8232 10.4697 15.5303L8.28033 13.341C7.98744 13.0481 7.98744 12.5732 8.28033 12.2803Z" fill="currentColor"/>
+							</svg>
+						</button>
+						<div id="mcpContextMenu" class="menu menu-up hidden">
+							<button id="manageMcpServersButton" class="menu-item" type="button">Manage MCP Servers</button>
+							<button id="addMcpServerButton" class="menu-item" type="button">Add MCP Server</button>
+							<button id="browseMcpServersButton" class="menu-item" type="button">Browse MCP Servers</button>
+							<button id="showInstalledMcpServersButton" class="menu-item" type="button">Show Installed MCP Servers</button>
+							<button id="showRuntimeMcpServersButton" class="menu-item" type="button">Show Live MCP Servers</button>
+							<button id="browseMcpResourcesButton" class="menu-item" type="button">Browse MCP Resources</button>
+							<button id="openMcpConfigurationButton" class="menu-item" type="button">Open MCP Configuration</button>
+							<button id="openWorkspaceMcpConfigurationButton" class="menu-item" type="button">Open Workspace MCP Configuration</button>
+							<button id="initializeWorkspaceMcpConfigurationButton" class="menu-item" type="button">Initialize Workspace MCP</button>
+							<button id="startMcpGatewayButton" class="menu-item" type="button">Start MCP Gateway</button>
+							<button id="showMcpGatewayButton" class="menu-item" type="button">Show MCP Gateway</button>
+							<button id="stopMcpGatewayButton" class="menu-item" type="button">Stop MCP Gateway</button>
+						</div>
+					</div>
 					<button id="attachButton" class="icon-button" type="button" aria-label="Attach files">
 						<svg class="attach-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 							<path d="M4.75 4.75H15.5C16.8807 4.75 18 5.86929 18 7.25V12.5H16.5V7.25C16.5 6.69772 16.0523 6.25 15.5 6.25H4.75C4.19772 6.25 3.75 6.69772 3.75 7.25V15.5C3.75 16.0523 4.19772 16.5 4.75 16.5H11V18H4.75C3.36929 18 2.25 16.8807 2.25 15.5V7.25C2.25 5.86929 3.36929 4.75 4.75 4.75Z" fill="currentColor"/>
@@ -1287,12 +1364,26 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		const modeSelector = document.getElementById('modeSelector');
 		const menuButton = document.getElementById('menuButton');
 		const contextMenu = document.getElementById('contextMenu');
+		const mcpButton = document.getElementById('mcpButton');
+		const mcpContextMenu = document.getElementById('mcpContextMenu');
 		const previewEditsButton = document.getElementById('previewEditsButton');
 		const applyEditsButton = document.getElementById('applyEditsButton');
 		const testsButton = document.getElementById('testsButton');
 		const settingsButton = document.getElementById('settingsButton');
 		const keysButton = document.getElementById('keysButton');
 		const refreshModelsButton = document.getElementById('refreshModelsButton');
+		const manageMcpServersButton = document.getElementById('manageMcpServersButton');
+		const addMcpServerButton = document.getElementById('addMcpServerButton');
+		const browseMcpServersButton = document.getElementById('browseMcpServersButton');
+		const showInstalledMcpServersButton = document.getElementById('showInstalledMcpServersButton');
+		const showRuntimeMcpServersButton = document.getElementById('showRuntimeMcpServersButton');
+		const browseMcpResourcesButton = document.getElementById('browseMcpResourcesButton');
+		const openMcpConfigurationButton = document.getElementById('openMcpConfigurationButton');
+		const openWorkspaceMcpConfigurationButton = document.getElementById('openWorkspaceMcpConfigurationButton');
+		const initializeWorkspaceMcpConfigurationButton = document.getElementById('initializeWorkspaceMcpConfigurationButton');
+		const startMcpGatewayButton = document.getElementById('startMcpGatewayButton');
+		const showMcpGatewayButton = document.getElementById('showMcpGatewayButton');
+		const stopMcpGatewayButton = document.getElementById('stopMcpGatewayButton');
 		const rerunButton = document.getElementById('rerunButton');
 		const copyButton = document.getElementById('copyButton');
 		const insertButton = document.getElementById('insertButton');
@@ -1635,6 +1726,7 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 
 		function closeMenu() {
 			contextMenu.classList.add('hidden');
+			mcpContextMenu.classList.add('hidden');
 		}
 
 		function renderMarkdown(value) {
@@ -1787,11 +1879,19 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 
 		menuButton.addEventListener('click', event => {
 			event.stopPropagation();
+			mcpContextMenu.classList.add('hidden');
 			contextMenu.classList.toggle('hidden');
+		});
+
+		mcpButton.addEventListener('click', event => {
+			event.stopPropagation();
+			contextMenu.classList.add('hidden');
+			mcpContextMenu.classList.toggle('hidden');
 		});
 
 		document.addEventListener('click', closeMenu);
 		contextMenu.addEventListener('click', event => event.stopPropagation());
+		mcpContextMenu.addEventListener('click', event => event.stopPropagation());
 		messages.addEventListener('click', async event => {
 			const target = event.target;
 			if (!(target instanceof HTMLElement)) {
@@ -1864,6 +1964,54 @@ export class OpenMLAssistantViewProvider implements vscode.WebviewViewProvider, 
 		refreshModelsButton.addEventListener('click', () => {
 			closeMenu();
 			vscode.postMessage({ type: 'refreshModels' });
+		});
+		manageMcpServersButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'manageMcpServers' });
+		});
+		addMcpServerButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'addMcpServer' });
+		});
+		browseMcpServersButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'browseMcpServers' });
+		});
+		showInstalledMcpServersButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'showInstalledMcpServers' });
+		});
+		showRuntimeMcpServersButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'showRuntimeMcpServers' });
+		});
+		browseMcpResourcesButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'browseMcpResources' });
+		});
+		openMcpConfigurationButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'openMcpConfiguration' });
+		});
+		openWorkspaceMcpConfigurationButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'openWorkspaceMcpConfiguration' });
+		});
+		initializeWorkspaceMcpConfigurationButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'initializeWorkspaceMcpConfiguration' });
+		});
+		startMcpGatewayButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'startMcpGateway' });
+		});
+		showMcpGatewayButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'showMcpGateway' });
+		});
+		stopMcpGatewayButton.addEventListener('click', () => {
+			closeMenu();
+			vscode.postMessage({ type: 'stopMcpGateway' });
 		});
 		rerunButton.addEventListener('click', () => {
 			closeMenu();

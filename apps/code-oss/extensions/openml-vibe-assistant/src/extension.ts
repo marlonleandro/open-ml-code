@@ -72,6 +72,9 @@ async function ensureAssistant(context: vscode.ExtensionContext): Promise<Assist
 			});
 
 			const provider = new modules.panel.OpenMLAssistantViewProvider(context.extensionUri);
+			context.subscriptions.push(modules.mcp.onDidChangeKnownMcpServers(() => {
+				void provider.refresh();
+			}));
 			return { modules, provider };
 		})().catch(error => {
 			runtimePromise = undefined;

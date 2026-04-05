@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { buildMcpContextBlock } from './mcp';
 import { buildWorkspaceMemoryBlock } from './memory';
 import { buildProjectHistoryContext } from './projectState';
 import { getProviderSecret } from './secrets';
@@ -595,11 +596,12 @@ export async function getRelevantWorkspaceSymbols(query: string, limit = 12): Pr
 	return [...collected.values()];
 }
 
-export async function buildDeepContext(query: string, activeFileName?: string, selectedText?: string): Promise<string> {
+export async function buildDeepContext(query: string, activeFileName?: string, selectedText?: string, mode?: 'agent' | 'ask' | 'edit' | 'plan'): Promise<string> {
 	await ensureSemanticIndex();
 	const queryTokens = tokenize(`${query}\n${selectedText ?? ''}`);
 	const [queryVector] = await createSemanticVectors([`${query}\n${selectedText ?? ''}`]);
 	const memoryBlock = buildWorkspaceMemoryBlock();
+	const mcpBlock = await buildMcpContextBlock(mode);
 	const historyBlock = await buildProjectHistoryContext();
 	const symbols = await getRelevantWorkspaceSymbols(query, 10);
 	const topChunks = indexedChunks
@@ -619,6 +621,12 @@ export async function buildDeepContext(query: string, activeFileName?: string, s
 	if (memoryBlock) {
 		sections.push('Persistent workspace context:');
 		sections.push(memoryBlock);
+		sections.push('');
+	}
+
+	if (mcpBlock) {
+		sections.push('Configured MCP context:');
+		sections.push(mcpBlock);
 		sections.push('');
 	}
 
